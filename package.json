@@ -1,0 +1,9 @@
+{
+	"devDependencies": {
+		"ts-migrate": "^0.1.35"
+	},
+	"dependencies": {
+		"tsc": "^2.0.4",
+		"typescript": "^5.3.3"
+	}
+}
