@@ -18,9 +18,12 @@ const xorBuffer = (lhv: Buffer, rhv: Buffer) => {
 };
 
 
-const createPrng = (seed: number) => {
+/**
+ * Creates a pseudo-random number generator based on the seed.
+ */
+const createPrng = (seedByte: number) => {
   return function () {
-    var x = Math.sin(seed++) * 10000;
+    var x = Math.sin(seedByte++) * 10000;
     return x - Math.floor(x);
   };
 };
@@ -60,8 +63,8 @@ const unshuffle = (block: Buffer, seed: Buffer) => {
  * Encrypts the block using the key and seed.
  */
 export const encrypt = (block: Buffer, key: Buffer, seed: Buffer) => {
-  if (block.length !== 4 || key.length !== 4) {
-    throw new Error("Block and key must be 4 bytes long.");
+  if (key.length < block.length) {
+    throw new Error("Key must be at least as long as the block");
   }
   let xorWithKey = xorBuffer(block, key);
   let xorWithSeed = xorBuffer(xorWithKey, seed);
