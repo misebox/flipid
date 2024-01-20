@@ -2,12 +2,14 @@ lockfileVersion: 5.4
 
 specifiers:
   '@types/node': ^20.11.5
+  bufferbase: ^1.0.0
   tsc: ^2.0.4
   tsx: ^4.7.0
   typescript: ^5.3.3
 
 dependencies:
   '@types/node': 20.11.5
+  bufferbase: 1.0.0
   tsc: 2.0.4
   typescript: 5.3.3
 
@@ -227,6 +229,10 @@ packages:
     resolution: {integrity: sha512-g557vgQjUUfN76MZAN/dt1z3dzcUsimuysco0KeluHgrPdJXkP/XdAURgyO2W9fZWHRtRBiVKzKn8vyOAwlG+w==}
     dependencies:
       undici-types: 5.26.5
+    dev: false
+
+  /bufferbase/1.0.0:
+    resolution: {integrity: sha512-Vn4xyPJoMiuVL4GXg+mzbmDpKCr5gWVW80ds09dWEl5aRf959mjkdwsq5bnnlphAYURfIa7ZWa8tb0iZ//mb+Q==}
     dev: false
 
   /esbuild/0.19.11:
