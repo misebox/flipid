@@ -1,11 +1,12 @@
-import { Buffer } from "node:buffer";
-import { encrypt } from "./simple-cipher";
+import { Buffer } from 'node:buffer';
+import { encrypt, decrypt } from './simple-cipher.js';
+import { BufferEncoder, Chars } from 'bufferbase';
 
 // Error for when the data is not a number, a bigint or a buffer
 class InvalidDataTypeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "InvalidDataTypeError";
+    this.name = 'InvalidDataTypeError';
   }
 }
 
@@ -13,22 +14,37 @@ class InvalidDataTypeError extends Error {
 class BlockTooLargeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "BlockTooLargeError";
+    this.name = 'BlockTooLargeError';
   }
 }
 
+const alphaEncoder = new BufferEncoder(Chars.Base52);
+/**
+ * Generates Flip IDs.
+ */
 export class FlipIDGenerator {
-  constructor(private key: string, private byteSize: number = 4) {}
+  constructor(
+    private key: string,
+    private byteSize: number = 4,
+    private encoder = new BufferEncoder(Chars.Base32Crockford),
+    private headerSize = 1
+  ) {}
 
-  encode(data: number | bigint | Buffer, seed: string | Buffer): string {
+  /**
+   * Encodes the data into a Flip ID.
+   */
+  encode(data: number | bigint | Buffer): string {
     let buf: Buffer;
     // Convert data to buffer
     if (data instanceof Buffer) {
       buf = data;
     } else if (typeof data === 'number' || typeof data === 'bigint') {
-      buf = Buffer.from(data.toString(16), 'hex');
+      const hex = ('00'.repeat(this.byteSize) + data.toString(16)).slice(
+        -this.byteSize * 2
+      );
+      buf = Buffer.from(hex, 'hex');
     } else {
-      throw new InvalidDataTypeError("Invalid data type");
+      throw new InvalidDataTypeError('Invalid data type');
     }
     if (buf.length > this.byteSize) {
       throw new BlockTooLargeError('Block is too large');
@@ -36,17 +52,36 @@ export class FlipIDGenerator {
     // Pad the buffer with zeros
     const block = Buffer.alloc(this.byteSize);
     buf.copy(block, this.byteSize - buf.length);
-    // TODO: use remain bytes
-    const key = Buffer.from(
-      this.key
-        .repeat(Math.ceil(block.length / this.key.length))
-        .slice(0, block.length),
-      "ascii"
+    const key = Buffer.from(this.key);
+    const sumVal = block.reduce(
+      (prev, curr) => (prev + curr) % 256 ** this.headerSize,
+      0
     );
-    const seedBuf = Buffer.from(seed);
-    const encrypted = encrypt(block, key, seed);
-    return seed + encrypted.toString;
+    const newSeedHex = (
+      '00'.repeat(this.headerSize) + sumVal.toString(16)
+    ).slice(-this.headerSize * 2);
+    const sumBuf = Buffer.from(newSeedHex, 'hex');
+    const encrypted = encrypt(block, key, sumBuf);
+    const encoded = this.encoder.encode(Buffer.concat([sumBuf, encrypted]));
+    return encoded;
   }
 
-  decodeNumber();
+  /**
+   * Decodes the encrypted string and returns the original data.
+   */
+  decode(encoded: string): Buffer {
+    const concatBuf = this.encoder.decode(encoded);
+
+    const sumBuf = Buffer.alloc(this.headerSize);
+    concatBuf.subarray(0, this.headerSize).copy(sumBuf);
+    const encryptedBlock = Buffer.alloc(concatBuf.length - this.headerSize);
+    concatBuf.subarray(this.headerSize).copy(encryptedBlock);
+
+    const decryptedBlock = decrypt(
+      encryptedBlock,
+      Buffer.from(this.key, 'ascii'),
+      sumBuf
+    );
+    return decryptedBlock;
+  }
 }

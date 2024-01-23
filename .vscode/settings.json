@@ -1,0 +1,5 @@
+{
+    "vitest": {
+        "commandLine": "pnpm run test --"
+    }
+}
