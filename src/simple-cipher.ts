@@ -61,7 +61,7 @@ export const unshuffle = (block: Buffer, seed: Buffer) => {
  * Encrypts the block using the key and seed.
  */
 export const encrypt = (block: Buffer, key: Buffer, sumBuf: Buffer) => {
-  if (key.length < block.length) {
+  if (key.length > 0 && key.length < block.length) {
     throw new Error('Key must be at least as long as the block');
   }
   let xorWithKey = xorBuffer(block, key);
