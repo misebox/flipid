@@ -24,7 +24,7 @@ class BlockTooLargeError extends Error {
 export class FlipIDGenerator {
   constructor(
     private key: string = '',
-    private blockSize?: number,
+    private blockSize: number,
     private headerSize = 1,
     private encoder = new BufferEncoder(Chars.Base32Crockford)
   ) {}

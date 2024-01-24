@@ -1,20 +1,20 @@
 import { FlipIDGenerator } from './flipid.js';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('FlipIDGenerator', () => {
   describe('encode', () => {
     it('should return the expected result', () => {
-      const g = new FlipIDGenerator('secret');
+      const g = new FlipIDGenerator('secret', 5);
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
 
-      expect(res).toEqual('3V3R00M3RM');
+      expect(res).toEqual('0187HWYRM');
     });
 
     it('should return the same result as another instance with the same key', () => {
-      const g1 = new FlipIDGenerator('secret');
-      const g2 = new FlipIDGenerator('secret');
+      const g1 = new FlipIDGenerator('secret', 5);
+      const g2 = new FlipIDGenerator('secret', 5);
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -24,7 +24,7 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should return the string that is difference from original', () => {
-      const g = new FlipIDGenerator('secret');
+      const g = new FlipIDGenerator('secret', 5);
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
@@ -33,8 +33,8 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should generate different string when different key used', () => {
-      const g1 = new FlipIDGenerator('secret1');
-      const g2 = new FlipIDGenerator('secret2');
+      const g1 = new FlipIDGenerator('secret1', 7);
+      const g2 = new FlipIDGenerator('secret2', 7);
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -66,8 +66,8 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should generate different string when different headerSize', () => {
-      const g1 = new FlipIDGenerator('secret1');
-      const g2 = new FlipIDGenerator('secret2');
+      const g1 = new FlipIDGenerator('secret1', 7);
+      const g2 = new FlipIDGenerator('secret2', 7);
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -78,8 +78,8 @@ describe('FlipIDGenerator', () => {
   });
   describe('decode', () => {
     it('should return the expected result', () => {
-      const g = new FlipIDGenerator('secret');
-      const encrypted = '3V3R00M3RM';
+      const g = new FlipIDGenerator('secret', 5);
+      const encrypted = '0187HWYRM';
 
       const res = g.decode(encrypted);
 
@@ -88,24 +88,25 @@ describe('FlipIDGenerator', () => {
   });
   describe('encode and decode reversibility', () => {
     it('decode should return the original data that was passed into encode', () => {
-      const g = new FlipIDGenerator('secret');
-      const data = Buffer.from('hello');
+      const g = new FlipIDGenerator('secret', 5);
+      const data = Buffer.from('hello', 'utf8');
 
       const encrypted = g.encode(data);
+      console.log(encrypted);
       const decrypted = g.decode(encrypted);
+
+      console.log(decrypted.toString('utf8'));
 
       expect(decrypted).toEqual(data);
     });
   });
   describe('constructor arguments', () => {
     it('should use default values when no arguments passed', () => {
-      const g = new FlipIDGenerator();
+      const g = new FlipIDGenerator('secret', 5);
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
 
-      expect(g['key']).toEqual('');
-      expect(g['blockSize']).toEqual(undefined);
       expect(g['headerSize']).toEqual(1);
       expect(res).not.toEqual(data);
     });

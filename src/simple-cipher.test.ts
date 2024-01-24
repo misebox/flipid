@@ -1,5 +1,5 @@
-import { expect, test } from 'vitest';
-import { shuffle, unshuffle } from './simple-cipher.js';
+import { describe, expect, test } from 'vitest';
+import { decrypt, encrypt, shuffle, unshuffle } from './simple-cipher.js';
 import { xorBuffer } from './simple-cipher';
 
 test('a shuffled buffer should be changed from original buffer', () => {
@@ -13,6 +13,21 @@ test('a shuffled buffer can be restored by unshuffle', () => {
   const seed = Buffer.from('xx');
   const shuffled = shuffle(original, seed);
   const unshuffled = unshuffle(shuffled, seed);
+  expect(unshuffled).toEqual(original);
+});
+test('shuffle works correctly if long seed is used', () => {
+  const original = Buffer.from('hello');
+  const seed = Buffer.from('longeeeeeeeeeeer seed');
+  const shuffled = shuffle(original, seed);
+  const unshuffled = unshuffle(shuffled, seed);
+  expect(unshuffled).toEqual(original);
+});
+test('a buffer that was shuffled 2 times can be restored by unshuffling 2 times', () => {
+  const key = 'hello';
+  const original = Buffer.from(key);
+  const seed = Buffer.from('ab');
+  const shuffled = shuffle(shuffle(original, seed), Buffer.from(key));
+  const unshuffled = unshuffle(unshuffle(shuffled, Buffer.from(key)), seed);
   expect(unshuffled).toEqual(original);
 });
 test('xorBuffer changes buffer and restore it by applying two times', () => {
@@ -32,6 +47,15 @@ test('xorBuffer works correctly if long key is used', () => {
   expect(restored).toEqual(original);
 });
 
-test('encode', () => {
-  expect(true).toEqual(true);
+describe('encrypt', () => {
+  test('should return the result that can be decrypt to same buffer', () => {
+    const original = Buffer.from('hello');
+    const key = Buffer.from('secret');
+    const iv = Buffer.from('xyz');
+    const encrypted = encrypt(original, key, iv);
+    const decrypted = decrypt(encrypted, key, iv);
+
+    expect(encrypted).not.toEqual(original);
+    expect(original).toEqual(decrypted);
+  });
 });

@@ -43,3 +43,11 @@ import { FlipIDGenerator } from './flipid.js';
   }
   console.table(result);
 }
+
+const g = new FlipIDGenerator('secret', 8);
+const data = Buffer.from('hello');
+
+const encrypted = g.encode(data);
+const decrypted = g.decode(encrypted);
+
+console.log('encrypted:', encrypted, decrypted.toString('utf8'));

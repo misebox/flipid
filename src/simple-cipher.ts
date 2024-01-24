@@ -26,13 +26,29 @@ const createPrng = (seedByte: number) => {
   };
 };
 
-export const shuffle = (buffer: Buffer, seed: Buffer) => {
-  let result = Buffer.from(buffer);
+const generateShuffleTable = (
+  blockSize: number,
+  seed: Buffer
+): [number, number][][] => {
+  const table: [number, number][][] = [];
   for (const seedByte of seed) {
-    let prng = createPrng(seedByte);
+    const prng = createPrng(seedByte);
+    const pairs: [number, number][] = [];
 
-    for (let i = result.length - 1; i > 0; i--) {
-      let j = Math.floor(prng() * (i + 1));
+    for (let i = blockSize - 1; i > 0; i--) {
+      // indices[i] = Math.floor(prng() * (i + 1));
+      pairs.push([i, Math.floor(prng() * (i + 1))]);
+    }
+    table.push(pairs);
+  }
+  return table;
+};
+
+export const shuffle = (block: Buffer, seed: Buffer) => {
+  let result = Buffer.from(block);
+  const shuffleTable = generateShuffleTable(block.length, seed);
+  for (const pairs of shuffleTable) {
+    for (const [i, j] of pairs) {
       [result[i], result[j]] = [result[j], result[i]];
     }
   }
@@ -40,17 +56,13 @@ export const shuffle = (buffer: Buffer, seed: Buffer) => {
 };
 
 export const unshuffle = (block: Buffer, seed: Buffer) => {
-  let result = Buffer.from(block);
-  for (const seedByte of seed.reverse()) {
-    let prng = createPrng(seedByte);
-    let indices = [];
-
-    for (let i = result.length - 1; i > 0; i--) {
-      indices[i] = Math.floor(prng() * (i + 1));
-    }
-
-    for (let i = 1; i < result.length; i++) {
-      let j = indices[i];
+  const result = Buffer.from(block);
+  const shuffleTable = generateShuffleTable(block.length, seed);
+  shuffleTable.reverse();
+  for (const pairs of shuffleTable) {
+    pairs.reverse();
+    for (const [i, j] of pairs) {
+      // for (let i = 1; i < result.length; i++) {
       [result[i], result[j]] = [result[j], result[i]];
     }
   }
@@ -64,16 +76,19 @@ export const encrypt = (block: Buffer, key: Buffer, sumBuf: Buffer) => {
   if (key.length > 0 && key.length < block.length) {
     throw new Error('Key must be at least as long as the block');
   }
-  let xorWithKey = xorBuffer(block, key);
-  let xorWithSeed = xorBuffer(xorWithKey, sumBuf);
-  return shuffle(xorWithSeed, sumBuf);
+  const xorWithKey = xorBuffer(block, key);
+  const xorWithSeed = xorBuffer(xorWithKey, sumBuf);
+  // const shuffled = shuffle(xorWithSeed, sumBuf);
+  const shuffled = shuffle(shuffle(xorWithSeed, key), sumBuf);
+  return shuffled;
 };
 
 /**
  * Decrypts the encrypted buffer using the key and seed.
  */
 export const decrypt = (encrypted: Buffer, key: Buffer, sumBuf: Buffer) => {
-  const shuffledBack = unshuffle(encrypted, sumBuf);
+  const shuffledBack = unshuffle(unshuffle(encrypted, sumBuf), key);
+  // const shuffledBack = unshuffle(encrypted, sumBuf);
   const xorWithSeed = xorBuffer(shuffledBack, sumBuf);
   return xorBuffer(xorWithSeed, key);
 };
