@@ -25,7 +25,7 @@ const alphaEncoder = new BufferEncoder(Chars.Base52);
 export class FlipIDGenerator {
   constructor(
     private key: string,
-    private byteSize: number = 4,
+    private byteSize?: number,
     private encoder = new BufferEncoder(Chars.Base32Crockford),
     private headerSize = 1
   ) {}
@@ -39,19 +39,23 @@ export class FlipIDGenerator {
     if (data instanceof Buffer) {
       buf = data;
     } else if (typeof data === 'number' || typeof data === 'bigint') {
-      const hex = ('00'.repeat(this.byteSize) + data.toString(16)).slice(
-        -this.byteSize * 2
-      );
-      buf = Buffer.from(hex, 'hex');
+      let tmp = data.toString(16);
+      tmp = tmp.length % 2 ? '0' + tmp : tmp;
+      buf = Buffer.from(tmp, 'hex');
     } else {
       throw new InvalidDataTypeError('Invalid data type');
     }
-    if (buf.length > this.byteSize) {
+    if (this.byteSize && buf.length > this.byteSize) {
       throw new BlockTooLargeError('Block is too large');
     }
     // Pad the buffer with zeros
-    const block = Buffer.alloc(this.byteSize);
-    buf.copy(block, this.byteSize - buf.length);
+    let block: Buffer;
+    if (this.byteSize) {
+      block = Buffer.alloc(this.byteSize);
+      buf.copy(block, this.byteSize - buf.length);
+    } else {
+      block = buf;
+    }
     const key = Buffer.from(this.key);
     const sumVal = block.reduce(
       (prev, curr) => (prev + curr) % 256 ** this.headerSize,
@@ -62,7 +66,7 @@ export class FlipIDGenerator {
     ).slice(-this.headerSize * 2);
     const sumBuf = Buffer.from(newSeedHex, 'hex');
     const encrypted = encrypt(block, key, sumBuf);
-    const encoded = this.encoder.encode(Buffer.concat([sumBuf, encrypted]));
+    const encoded = this.encoder.encode(Buffer.concat([encrypted, sumBuf]));
     return encoded;
   }
 
@@ -70,12 +74,15 @@ export class FlipIDGenerator {
    * Decodes the encrypted string and returns the original data.
    */
   decode(encoded: string): Buffer {
-    const concatBuf = this.encoder.decode(encoded);
+    const concatBuf = this.encoder.decode(
+      encoded,
+      this.byteSize ? this.headerSize + this.byteSize : undefined
+    );
 
     const sumBuf = Buffer.alloc(this.headerSize);
-    concatBuf.subarray(0, this.headerSize).copy(sumBuf);
+    concatBuf.subarray(-this.headerSize).copy(sumBuf);
     const encryptedBlock = Buffer.alloc(concatBuf.length - this.headerSize);
-    concatBuf.subarray(this.headerSize).copy(encryptedBlock);
+    concatBuf.subarray(0, -this.headerSize).copy(encryptedBlock);
 
     const decryptedBlock = decrypt(
       encryptedBlock,

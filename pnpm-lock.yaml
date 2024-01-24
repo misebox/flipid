@@ -2,13 +2,13 @@ lockfileVersion: 5.4
 
 specifiers:
   '@types/node': ^20.11.5
-  bufferbase: ^1.1.13
+  bufferbase: ^1.2.2
   tsx: ^4.7.0
   typescript: ^5.3.3
   vitest: ^1.2.1
 
 dependencies:
-  bufferbase: 1.1.13
+  bufferbase: 1.2.2
   vitest: 1.2.1_@types+node@20.11.5
 
 devDependencies:
@@ -389,8 +389,8 @@ packages:
     resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
     dev: false
 
-  /bufferbase/1.1.13:
-    resolution: {integrity: sha512-JSjCCpll0k92w81bwvPlJ66mHRgppnZWWVcc96r5kXSRHOJKaPdVKvi9Tm36lsXrrtrsg7hS7aezCxSpQq3acw==}
+  /bufferbase/1.2.2:
+    resolution: {integrity: sha512-0/1Sb6geJzf2yEjSUyt9DYGVe8xdrjw1P4zXBVyC2uOiJxuNrkZ40cWZrC+WFOkBgc6ap4Z6bJSUrkROBqmUMQ==}
     dev: false
 
   /cac/6.7.14:
