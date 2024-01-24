@@ -18,14 +18,13 @@ class BlockTooLargeError extends Error {
   }
 }
 
-const alphaEncoder = new BufferEncoder(Chars.Base52);
 /**
  * Generates Flip IDs.
  */
 export class FlipIDGenerator {
   constructor(
     private key: string,
-    private byteSize?: number,
+    private blockSize?: number,
     private encoder = new BufferEncoder(Chars.Base32Crockford),
     private headerSize = 1
   ) {}
@@ -45,14 +44,14 @@ export class FlipIDGenerator {
     } else {
       throw new InvalidDataTypeError('Invalid data type');
     }
-    if (this.byteSize && buf.length > this.byteSize) {
+    if (this.blockSize && buf.length > this.blockSize) {
       throw new BlockTooLargeError('Block is too large');
     }
     // Pad the buffer with zeros
     let block: Buffer;
-    if (this.byteSize) {
-      block = Buffer.alloc(this.byteSize);
-      buf.copy(block, this.byteSize - buf.length);
+    if (this.blockSize) {
+      block = Buffer.alloc(this.blockSize);
+      buf.copy(block, this.blockSize - buf.length);
     } else {
       block = buf;
     }
@@ -76,7 +75,7 @@ export class FlipIDGenerator {
   decode(encoded: string): Buffer {
     const concatBuf = this.encoder.decode(
       encoded,
-      this.byteSize ? this.headerSize + this.byteSize : undefined
+      this.blockSize ? this.headerSize + this.blockSize : undefined
     );
 
     const sumBuf = Buffer.alloc(this.headerSize);
@@ -90,5 +89,17 @@ export class FlipIDGenerator {
       sumBuf
     );
     return decryptedBlock;
+  }
+
+  /**
+   * Decodes the encrypted string and returns the original data as a number.
+   */
+  decodeToNumber(encoded: string): number {
+    const decryptedBlock = this.decode(encoded);
+    let num = 0;
+    for (let i = decryptedBlock.length - 1; i >= 0; i) {
+      num += decryptedBlock[i] * 256 ** i;
+    }
+    return num;
   }
 }
