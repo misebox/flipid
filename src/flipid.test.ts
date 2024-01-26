@@ -1,5 +1,5 @@
 import { FlipIDGenerator } from './flipid.js';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, bench } from 'vitest';
 
 describe('FlipIDGenerator', () => {
   describe('encode', () => {
@@ -105,11 +105,11 @@ describe('FlipIDGenerator', () => {
     });
     it('should handle numbers of various digits correctly', () => {
       const g = new FlipIDGenerator('secret', 5);
-      for (let i = 1; i < 63; i++) {
+      for (let i = 1n; i < 63n; i++) {
         const encrypted = g.encodeNumber(2n ** BigInt(i) - 1n);
-        const decrypted = g.decodeToNumber(encrypted);
+        const decrypted = g.decodeToBigInt(encrypted);
 
-        expect(decrypted).toEqual(2 ** i);
+        expect(decrypted).toEqual(2n ** i);
       }
     });
   });

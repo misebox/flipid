@@ -64,8 +64,10 @@ export class FlipIDGenerator {
     }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
-    const data = Buffer.from(tmp, 'hex');
-    return this.encodeBuffer(data, prefixSalt);
+    const tmpBuf = Buffer.from(tmp, 'hex');
+    const block = Buffer.alloc(this.blockSize);
+    tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    return this.encodeBuffer(block, prefixSalt);
   }
 
   /**
@@ -103,6 +105,7 @@ export class FlipIDGenerator {
       Buffer.from(newSeedHex, 'hex'),
     ]);
     const encrypted = this.transformer.encrypt(block, iv);
+    console.log('encode', buffer, encrypted, iv);
     const encoded = this.encoder.encode(Buffer.concat([encrypted, iv]));
     return encoded;
   }
@@ -112,9 +115,23 @@ export class FlipIDGenerator {
    */
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
+    const data = Buffer.alloc(this.blockSize);
+    decryptedBlock.copy(data, this.blockSize - decryptedBlock.length);
     let num = 0;
+    for (let i = 0; i < decryptedBlock.length; i++) {
+      num = num * 256 + decryptedBlock[i];
+    }
+    return num;
+  }
+
+  /**
+   * Decodes the encrypted string and returns the original data as a number.
+   */
+  decodeToBigInt(encoded: string): bigint {
+    const decryptedBlock = this.decodeToBuffer(encoded);
+    let num = 0n;
     for (let i = decryptedBlock.length - 1; i >= 0; i--) {
-      num += decryptedBlock[i] * 256 ** i;
+      num += BigInt(decryptedBlock[i]) * 256n ** BigInt(i);
     }
     return num;
   }
@@ -125,15 +142,21 @@ export class FlipIDGenerator {
   decodeToBuffer(encoded: string): Buffer {
     const concatBuf = this.encoder.decode(
       encoded,
-      this.blockSize ? this.headerSize + this.blockSize : undefined
+      this.headerSize + this.blockSize
     );
 
     const sumBuf = Buffer.alloc(this.headerSize);
     concatBuf.subarray(-this.headerSize).copy(sumBuf);
-    const encryptedBlock = Buffer.alloc(concatBuf.length - this.headerSize);
-    concatBuf.subarray(0, -this.headerSize).copy(encryptedBlock);
+    const encryptedBlock = Buffer.alloc(this.blockSize);
+    concatBuf
+      .subarray(0, -this.headerSize)
+      .copy(
+        encryptedBlock,
+        concatBuf.length - this.headerSize - this.blockSize
+      );
 
     const decryptedBlock = this.transformer.decrypt(encryptedBlock, sumBuf);
+    console.log('decode', decryptedBlock, encryptedBlock, sumBuf);
     return decryptedBlock;
   }
 }

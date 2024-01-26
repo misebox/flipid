@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "description": "Simple and Reversible ID Transformation",
   "type": "module",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm run build",
     "example": "tsx src/example.ts",
-    "test": "vitest",
-    "test:watch": "vitest watch"
+    "test": "vitest --coverage",
+    "test:watch": "vitest watch",
+    "tsx": "tsx"
   },
   "dependencies": {
     "bufferbase": "^1.2.2",
