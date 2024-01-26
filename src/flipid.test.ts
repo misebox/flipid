@@ -81,18 +81,27 @@ describe('FlipIDGenerator', () => {
       const g = new FlipIDGenerator('secret', 5);
       const encrypted = '0187HWYRM';
 
-      const res = g.decode(encrypted);
+      const res = g.decodeToBuffer(encrypted);
 
       expect(res).toEqual(Buffer.from('hello'));
     });
   });
   describe('encode and decode reversibility', () => {
-    it('decode should return the original data that was passed into encode', () => {
+    it('decode should return the original buffer that was passed into encode', () => {
       const g = new FlipIDGenerator('secret', 5);
       const data = Buffer.from('hello', 'utf8');
 
       const encrypted = g.encode(data);
-      const decrypted = g.decode(encrypted);
+      const decrypted = g.decodeToBuffer(encrypted);
+
+      expect(decrypted).toEqual(data);
+    });
+    it('decode should return the original number that was passed into encode', () => {
+      const g = new FlipIDGenerator('secret', 5);
+      const data = Buffer.from('hello', 'utf8');
+
+      const encrypted = g.encode(data);
+      const decrypted = g.decodeToBuffer(encrypted);
 
       expect(decrypted).toEqual(data);
     });
