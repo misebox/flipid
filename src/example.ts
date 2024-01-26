@@ -16,6 +16,7 @@ export const exampleFlipIDGenerator = () => {
     const decodedValue = decoded.reduce((p, c) => p * 256 + c, 0);
     result.push({ value, encoded, decodedValue });
   }
+  return result;
 };
 
 export const exampleSimpleCipher = () => {
@@ -40,6 +41,7 @@ export const exampleSimpleCipher = () => {
     });
     seed++;
   }
+  return result;
 };
 if (import.meta.url === `file://${process.argv[1]}`) {
   {
