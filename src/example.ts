@@ -9,12 +9,10 @@ export const exampleFlipIDGenerator = () => {
   console.log('FlipIDGenerator');
   const generator = new FlipIDGenerator(key, 4);
   const result = [];
-  for (let value = 0; value < 100; value++) {
-    // for (let value of [1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789]) {
-    const encoded = generator.encode(value);
-    const decoded = generator.decodeToBuffer(encoded);
-    const decodedValue = decoded.reduce((p, c) => p * 256 + c, 0);
-    result.push({ value, encoded, decodedValue });
+  for (let value of [1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789]) {
+    const encoded = generator.encodeNumber(value);
+    const decoded = generator.decodeToNumber(encoded);
+    result.push({ value, encoded, decoded });
   }
   return result;
 };

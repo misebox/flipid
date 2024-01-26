@@ -45,27 +45,43 @@ export class FlipIDGenerator {
    * Encodes the data into a Flip ID.
    */
   encode(data: number | bigint | Buffer, prefixSalt: string = ''): string {
-    let result: string;
     // Convert data to buffer
     if (data instanceof Buffer) {
-      result = this.encodeBuffer(data, prefixSalt);
+      return this.encodeBuffer(data, prefixSalt);
     } else if (typeof data === 'number' || typeof data === 'bigint') {
-      result = this.encodeNumber(data, prefixSalt);
+      return this.encodeNumber(data, prefixSalt);
     } else {
       throw new InvalidDataTypeError('Invalid data type');
     }
-    return result;
   }
+
+  /**
+   * Encodes the number into a Flip ID with a prefix salt.
+   */
+  encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
+    if (typeof num !== 'number' && typeof num !== 'bigint') {
+      throw new InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+    }
+    let tmp = num.toString(16);
+    tmp = tmp.length % 2 ? '0' + tmp : tmp;
+    const data = Buffer.from(tmp, 'hex');
+    return this.encodeBuffer(data, prefixSalt);
+  }
+
   /**
    * Encodes the buffer into a Flip ID.
    */
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
     if (this.usePrefixSalt && prefixSalt === '') {
-      throw new Error('Prefix salt is required');
+      throw new PrefixSaltRequiredError(
+        `usePrefixSalt is true but prefixSalt is empty`
+      );
     }
     if (this.blockSize && buffer.length > this.blockSize) {
-      throw new BlockTooLargeError('Block is too large');
+      throw new BlockTooLargeError(
+        `buffer size (${buffer.length}) > block size (${this.blockSize})`
+      );
     }
     // Pad the buffer with zeros
     let block: Buffer;
@@ -92,16 +108,15 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the number into a Flip ID with a prefix salt.
+   * Decodes the encrypted string and returns the original data as a number.
    */
-  encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
-    if (typeof num !== 'number' && typeof num !== 'bigint') {
-      throw new InvalidDataTypeError('Invalid data type');
+  decodeToNumber(encoded: string): number {
+    const decryptedBlock = this.decodeToBuffer(encoded);
+    let num = 0;
+    for (let i = decryptedBlock.length - 1; i >= 0; i--) {
+      num += decryptedBlock[i] * 256 ** i;
     }
-    let tmp = num.toString(16);
-    tmp = tmp.length % 2 ? '0' + tmp : tmp;
-    const data = Buffer.from(tmp, 'hex');
-    return this.encode(data, prefixSalt);
+    return num;
   }
 
   /**
@@ -120,17 +135,5 @@ export class FlipIDGenerator {
 
     const decryptedBlock = this.transformer.decrypt(encryptedBlock, sumBuf);
     return decryptedBlock;
-  }
-
-  /**
-   * Decodes the encrypted string and returns the original data as a number.
-   */
-  decodeToNumber(encoded: string): number {
-    const decryptedBlock = this.decodeToBuffer(encoded);
-    let num = 0;
-    for (let i = decryptedBlock.length - 1; i >= 0; i) {
-      num += decryptedBlock[i] * 256 ** i;
-    }
-    return num;
   }
 }

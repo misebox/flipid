@@ -98,12 +98,19 @@ describe('FlipIDGenerator', () => {
     });
     it('decode should return the original number that was passed into encode', () => {
       const g = new FlipIDGenerator('secret', 5);
-      const data = Buffer.from('hello', 'utf8');
+      const encrypted = g.encodeNumber(123456789);
+      const decrypted = g.decodeToNumber(encrypted);
 
-      const encrypted = g.encode(data);
-      const decrypted = g.decodeToBuffer(encrypted);
+      expect(decrypted).toEqual(123456789);
+    });
+    it('should handle numbers of various digits correctly', () => {
+      const g = new FlipIDGenerator('secret', 5);
+      for (let i = 1; i < 63; i++) {
+        const encrypted = g.encodeNumber(2n ** BigInt(i) - 1n);
+        const decrypted = g.decodeToNumber(encrypted);
 
-      expect(decrypted).toEqual(data);
+        expect(decrypted).toEqual(2 ** i);
+      }
     });
   });
   describe('constructor arguments', () => {
