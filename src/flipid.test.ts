@@ -92,10 +92,7 @@ describe('FlipIDGenerator', () => {
       const data = Buffer.from('hello', 'utf8');
 
       const encrypted = g.encode(data);
-      console.log(encrypted);
       const decrypted = g.decode(encrypted);
-
-      console.log(decrypted.toString('utf8'));
 
       expect(decrypted).toEqual(data);
     });

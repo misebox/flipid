@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { decrypt, encrypt, shuffle, unshuffle } from './simple-cipher.js';
-import { xorBuffer } from './simple-cipher';
+import {
+  BufferTransformer,
+  xorBuffer,
+  shuffle,
+  unshuffle,
+} from './transformer.js';
 
 test('a shuffled buffer should be changed from original buffer', () => {
   const original = Buffer.from('hello');
@@ -52,8 +56,23 @@ describe('encrypt', () => {
     const original = Buffer.from('hello');
     const key = Buffer.from('secret');
     const iv = Buffer.from('xyz');
-    const encrypted = encrypt(original, key, iv);
-    const decrypted = decrypt(encrypted, key, iv);
+    const transformer = new BufferTransformer(key);
+    const encrypted = transformer.encrypt(original, iv);
+    const decrypted = transformer.decrypt(encrypted, iv);
+
+    expect(encrypted).not.toEqual(original);
+    expect(original).toEqual(decrypted);
+  });
+});
+
+describe('BufferTransformer', () => {
+  test('encrypt should return the result that can be decrypt to same buffer', () => {
+    const original = Buffer.from('hello');
+    const key = Buffer.from('secret');
+    const iv = Buffer.from('xyz');
+    const transformer = new BufferTransformer(key);
+    const encrypted = transformer.encrypt(original, iv);
+    const decrypted = transformer.decrypt(encrypted, iv);
 
     expect(encrypted).not.toEqual(original);
     expect(original).toEqual(decrypted);

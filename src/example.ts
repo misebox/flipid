@@ -1,9 +1,9 @@
 import { Buffer } from 'node:buffer';
-import { encrypt, decrypt } from './simple-cipher.js';
+import { BufferTransformer } from './transformer.js';
 import { FlipIDGenerator } from './flipid.js';
 
 // Example usage
-{
+export const exampleFlipIDGenerator = () => {
   const key = 'CRID';
 
   console.log('FlipIDGenerator');
@@ -16,23 +16,22 @@ import { FlipIDGenerator } from './flipid.js';
     const decodedValue = decoded.reduce((p, c) => p * 256 + c, 0);
     result.push({ value, encoded, decodedValue });
   }
-  console.table(result);
-}
+};
 
-{
+export const exampleSimpleCipher = () => {
   console.log('simple-cipher');
   const keyBuf = Buffer.from('CRID');
   console.log('Key:', keyBuf.toString('hex'));
 
   let seed = 'x'.charCodeAt(0);
-
+  const transformer = new BufferTransformer(keyBuf);
   const result = [];
   for (let v of [1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789]) {
     let hex = ('00000000' + v.toString(16)).slice(-8);
     const block = Buffer.from(hex, 'hex');
     const seedBuf = Buffer.from([seed]);
-    const encrypted = encrypt(block, keyBuf, seedBuf);
-    const decrypted = decrypt(encrypted, keyBuf, seedBuf);
+    const encrypted = transformer.encrypt(block, seedBuf);
+    const decrypted = transformer.decrypt(encrypted, seedBuf);
 
     result.push({
       block: block.toString('hex'),
@@ -41,13 +40,16 @@ import { FlipIDGenerator } from './flipid.js';
     });
     seed++;
   }
-  console.table(result);
+};
+if (import.meta.url === `file://${process.argv[1]}`) {
+  {
+    const result = exampleFlipIDGenerator();
+    console.table(result);
+    console.log('main module');
+  }
+  {
+    const result = exampleSimpleCipher();
+    console.table(result);
+    console.log('');
+  }
 }
-
-const g = new FlipIDGenerator('secret', 8);
-const data = Buffer.from('hello');
-
-const encrypted = g.encode(data);
-const decrypted = g.decode(encrypted);
-
-console.log('encrypted:', encrypted, decrypted.toString('utf8'));

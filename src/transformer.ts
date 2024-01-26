@@ -70,20 +70,6 @@ export const unshuffle = (block: Buffer, seed: Buffer) => {
 };
 
 /**
- * Encrypts the block using the key and seed.
- */
-export const encrypt = (block: Buffer, key: Buffer, sumBuf: Buffer) => {
-  if (key.length > 0 && key.length < block.length) {
-    throw new Error('Key must be at least as long as the block');
-  }
-  const xorWithKey = xorBuffer(block, key);
-  const xorWithSeed = xorBuffer(xorWithKey, sumBuf);
-  // const shuffled = shuffle(xorWithSeed, sumBuf);
-  const shuffled = shuffle(shuffle(xorWithSeed, key), sumBuf);
-  return shuffled;
-};
-
-/**
  * Decrypts the encrypted buffer using the key and seed.
  */
 export const decrypt = (encrypted: Buffer, key: Buffer, sumBuf: Buffer) => {
@@ -106,3 +92,32 @@ export const calcBaseNDigits = (byteCount: number, baseN: number) => {
   }
   return digits;
 };
+
+export class BufferTransformer {
+  /**
+   * Creates a new BufferTransformer.
+   */
+  constructor(private key: Buffer) {}
+
+  /**
+   * Encrypts the block using the key and initialized vector.
+   */
+  encrypt(block: Buffer, iv: Buffer) {
+    if (this.key.length > 0 && this.key.length < block.length) {
+      throw new Error('Key must be at least as long as the block');
+    }
+    const xorWithKey = xorBuffer(block, this.key);
+    const xorWithSeed = xorBuffer(xorWithKey, iv);
+    const shuffled = shuffle(shuffle(xorWithSeed, this.key), iv);
+    return shuffled;
+  }
+
+  /**
+   * Decrypts the encrypted buffer using the key and initialized vector.
+   */
+  decrypt(encrypted: Buffer, iv: Buffer) {
+    const shuffledBack = unshuffle(unshuffle(encrypted, iv), this.key);
+    const xorWithSeed = xorBuffer(shuffledBack, iv);
+    return xorBuffer(xorWithSeed, this.key);
+  }
+}
