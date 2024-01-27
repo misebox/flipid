@@ -67,6 +67,7 @@ export class FlipIDGenerator {
     const tmpBuf = Buffer.from(tmp, 'hex');
     const block = Buffer.alloc(this.blockSize);
     tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    console.log(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -130,8 +131,8 @@ export class FlipIDGenerator {
   decodeToBigInt(encoded: string): bigint {
     const decryptedBlock = this.decodeToBuffer(encoded);
     let num = 0n;
-    for (let i = decryptedBlock.length - 1; i >= 0; i--) {
-      num += BigInt(decryptedBlock[i]) * 256n ** BigInt(i);
+    for (let i = 0; i < decryptedBlock.length; i++) {
+      num = num * 256n + BigInt(decryptedBlock[i]);
     }
     return num;
   }

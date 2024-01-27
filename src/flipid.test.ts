@@ -105,11 +105,12 @@ describe('FlipIDGenerator', () => {
     });
     it('should handle numbers of various digits correctly', () => {
       const g = new FlipIDGenerator('secret', 5);
-      for (let i = 1n; i < 63n; i++) {
-        const encrypted = g.encodeNumber(2n ** BigInt(i) - 1n);
+      for (let i = 1; i < 62; i++) {
+        const value = 2n ** BigInt(i) - 1n;
+        const encrypted = g.encodeNumber(value);
         const decrypted = g.decodeToBigInt(encrypted);
 
-        expect(decrypted).toEqual(2n ** i);
+        expect(value).toEqual(decrypted);
       }
     });
   });

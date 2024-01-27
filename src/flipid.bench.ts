@@ -10,4 +10,11 @@ describe('benchmark', () => {
     },
     { time: 100 }
   );
+  bench(
+    'decodeNumber of 123456',
+    () => {
+      const encrypted = g.encodeNumber(123456);
+    },
+    { time: 100 }
+  );
 });

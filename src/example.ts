@@ -4,14 +4,26 @@ import { FlipIDGenerator } from './flipid.js';
 
 // Example usage
 export const exampleFlipIDGenerator = () => {
-  const key = 'CRID';
+  const key = 'secret';
 
   console.log('FlipIDGenerator');
-  const generator = new FlipIDGenerator(key, 4);
+  const generator = new FlipIDGenerator(key, 5);
   const result = [];
-  for (let value of [1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789]) {
+  for (let value of [
+    1,
+    2,
+    3,
+    10,
+    11,
+    100,
+    101,
+    1000,
+    123456,
+    123456789,
+    4294967296n,
+  ]) {
     const encoded = generator.encodeNumber(value);
-    const decoded = generator.decodeToNumber(encoded);
+    const decoded = generator.decodeToBigInt(encoded);
     result.push({ value, encoded, decoded });
   }
   return result;
