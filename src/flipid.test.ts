@@ -104,9 +104,10 @@ describe('FlipIDGenerator', () => {
       expect(decrypted).toEqual(123456789);
     });
     it('should handle numbers of various digits correctly', () => {
-      const g = new FlipIDGenerator('secret', 5);
+      const g = new FlipIDGenerator('secretkey', 8);
       for (let i = 1; i < 62; i++) {
         const value = 2n ** BigInt(i) - 1n;
+        console.log('value', value);
         const encrypted = g.encodeNumber(value);
         const decrypted = g.decodeToBigInt(encrypted);
 
