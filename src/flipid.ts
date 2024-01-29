@@ -67,7 +67,6 @@ export class FlipIDGenerator {
     const tmpBuf = Buffer.from(tmp, 'hex');
     const block = Buffer.alloc(this.blockSize);
     tmpBuf.copy(block, this.blockSize - tmpBuf.length);
-    console.log(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -106,7 +105,6 @@ export class FlipIDGenerator {
       Buffer.from(newSeedHex, 'hex'),
     ]);
     const encrypted = this.transformer.encrypt(block, iv);
-    console.log('encode', buffer, encrypted, iv);
     const encoded = this.encoder.encode(Buffer.concat([encrypted, iv]));
     return encoded;
   }
@@ -157,7 +155,6 @@ export class FlipIDGenerator {
       );
 
     const decryptedBlock = this.transformer.decrypt(encryptedBlock, sumBuf);
-    console.log('decode', decryptedBlock, encryptedBlock, sumBuf);
     return decryptedBlock;
   }
 }
