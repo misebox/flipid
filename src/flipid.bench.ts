@@ -2,7 +2,7 @@ import { FlipIDGenerator } from './flipid.js';
 import { describe, bench } from 'vitest';
 
 describe('benchmark', () => {
-  const g = new FlipIDGenerator('secret', 5);
+  const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
   bench(
     'encodeNumber of 123456',
     () => {

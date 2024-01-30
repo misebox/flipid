@@ -2,19 +2,33 @@ import { Buffer } from 'node:buffer';
 import { BufferTransformer } from './transformer.js';
 import { BufferEncoder, Chars } from 'bufferbase';
 import errors from './errors.js';
+
+type FlipIDConstructorOptions = {
+  key?: string;
+  blockSize?: number;
+  headerSize?: number;
+  usePrefixSalt?: boolean;
+  encoder?: BufferEncoder;
+};
+
 /**
  * Generates Flip IDs.
  */
 export class FlipIDGenerator {
+  key: string;
+  blockSize: number;
+  headerSize: number;
+  usePrefixSalt: boolean;
+  encoder: BufferEncoder;
   transformer: BufferTransformer;
-  constructor(
-    key: string = '',
-    private blockSize: number,
-    private headerSize = 1,
-    private usePrefixSalt: boolean = false,
-    private encoder = new BufferEncoder(Chars.Base32Crockford)
-  ) {
-    this.transformer = new BufferTransformer(Buffer.from(key));
+
+  constructor(options: FlipIDConstructorOptions) {
+    this.key = options.key || '';
+    this.blockSize = options.blockSize || 0;
+    this.headerSize = options.headerSize || 1;
+    this.usePrefixSalt = options.usePrefixSalt || false;
+    this.encoder = options.encoder || new BufferEncoder(Chars.Base32Crockford);
+    this.transformer = new BufferTransformer(Buffer.from(this.key));
   }
 
   /**

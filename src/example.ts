@@ -7,7 +7,7 @@ export const exampleFlipIDGenerator = () => {
   const key = 'secret';
 
   console.log('FlipIDGenerator');
-  const generator = new FlipIDGenerator(key, 5);
+  const generator = new FlipIDGenerator({ key, blockSize: 5 });
   const result = [];
   for (let value of [
     1,
