@@ -106,7 +106,7 @@ export class FlipIDGenerator {
     ]);
     const encrypted = this.transformer.encrypt(block, iv);
     const encoded = this.encoder.encode(Buffer.concat([encrypted, iv]));
-    return encoded;
+    return this.usePrefixSalt ? prefixSalt + encoded : encoded;
   }
 
   /**
