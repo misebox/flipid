@@ -1,31 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { BufferTransformer } from './transformer.js';
 import { BufferEncoder, Chars } from 'bufferbase';
-
-// Error for when the data is not a number, a bigint or a buffer
-class InvalidDataTypeError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InvalidDataTypeError';
-  }
-}
-
-// Error for when the block is larger than byteSize
-class BlockTooLargeError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'BlockTooLargeError';
-  }
-}
-
-// Error for when prefix salt is required
-class PrefixSaltRequiredError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'PrefixSaltRequiredError';
-  }
-}
-
+import errors from './errors.js';
 /**
  * Generates Flip IDs.
  */
@@ -51,7 +27,7 @@ export class FlipIDGenerator {
     } else if (typeof data === 'number' || typeof data === 'bigint') {
       return this.encodeNumber(data, prefixSalt);
     } else {
-      throw new InvalidDataTypeError('Invalid data type');
+      throw new errors.InvalidDataTypeError('Invalid data type');
     }
   }
 
@@ -60,7 +36,7 @@ export class FlipIDGenerator {
    */
   encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'number' && typeof num !== 'bigint') {
-      throw new InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
@@ -76,12 +52,16 @@ export class FlipIDGenerator {
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
     if (this.usePrefixSalt && prefixSalt === '') {
-      throw new PrefixSaltRequiredError(
+      throw new errors.PrefixSaltRequiredError(
         `usePrefixSalt is true but prefixSalt is empty`
+      );
+    } else if (!this.usePrefixSalt && prefixSalt !== '') {
+      throw new errors.InvalidArgumentError(
+        `usePrefixSalt is false but prefixSalt is not empty`
       );
     }
     if (this.blockSize && buffer.length > this.blockSize) {
-      throw new BlockTooLargeError(
+      throw new errors.BlockTooLargeError(
         `buffer size (${buffer.length}) > block size (${this.blockSize})`
       );
     }
