@@ -30,9 +30,18 @@ export class InvalidArgumentError extends Error {
   }
 }
 
+// Error for when the checksum is invalid
+export class CheckSumError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ChecksumError';
+  }
+}
+
 export default {
   InvalidDataTypeError,
   BlockTooLargeError,
   PrefixSaltRequiredError,
   InvalidArgumentError,
+  CheckSumError,
 };

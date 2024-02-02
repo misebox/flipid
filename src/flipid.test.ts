@@ -1,3 +1,4 @@
+import errors from './errors';
 import { FlipIDGenerator } from './flipid.js';
 import { describe, it, expect, bench } from 'vitest';
 
@@ -121,6 +122,16 @@ describe('FlipIDGenerator', () => {
         expect(value).toEqual(decrypted);
       }
     });
+    it('should throw CheckSumError if checksum is mismatch', () => {
+      const g1 = new FlipIDGenerator({
+        key: 'secret',
+        blockSize: 5,
+        checkSum: true,
+      });
+      const data = 'Hello World';
+
+      expect(() => g1.decodeToBuffer(data)).toThrowError(errors.CheckSumError);
+    });
   });
   describe('constructor arguments', () => {
     it('should use default values when no arguments passed', () => {
@@ -130,6 +141,7 @@ describe('FlipIDGenerator', () => {
       const res = g.encode(data);
 
       expect(g['headerSize']).toEqual(1);
+      expect(g['checkSum']).toEqual(false);
       expect(res).not.toEqual(data);
     });
   });

@@ -10,6 +10,7 @@ export class FlipIDGenerator {
   key: string;
   blockSize: number;
   headerSize: number;
+  checkSum: boolean;
   usePrefixSalt: boolean;
   encoder: BufferEncoder;
   transformer: BufferTransformer;
@@ -18,12 +19,14 @@ export class FlipIDGenerator {
     key?: string;
     blockSize?: number;
     headerSize?: number;
+    checkSum?: boolean;
     usePrefixSalt?: boolean;
     encoder?: BufferEncoder;
   }) {
     this.key = options.key || '';
     this.blockSize = options.blockSize || 0;
     this.headerSize = options.headerSize || 1;
+    this.checkSum = options.checkSum || false;
     this.usePrefixSalt = options.usePrefixSalt || false;
     this.encoder = options.encoder || new BufferEncoder(Chars.Base32Crockford);
     this.transformer = new BufferTransformer(Buffer.from(this.key));
@@ -99,7 +102,12 @@ export class FlipIDGenerator {
     const encrypted = this.transformer.encrypt(
       Buffer.concat([this.transformer.encrypt(block, iv), iv])
     );
-    const encoded = this.encoder.encode(encrypted);
+    const checkSumBuf = this.checkSum
+      ? Buffer.from([encrypted.reduce((prev, curr) => prev + curr) % 256])
+      : Buffer.alloc(0);
+    const encoded = this.encoder.encode(
+      Buffer.concat([encrypted, checkSumBuf])
+    );
     return this.usePrefixSalt ? salt + encoded : encoded;
   }
 
@@ -140,10 +148,21 @@ export class FlipIDGenerator {
       saltSize = 1;
       encoded = encoded.slice(1);
     }
-    const encryptedBuf = this.encoder.decode(
+    const checkSumSize = this.checkSum ? 1 : 0;
+    const decodedBuf = this.encoder.decode(
       encoded,
-      saltSize + this.headerSize + this.blockSize
+      saltSize + this.headerSize + this.blockSize + checkSumSize
     );
+
+    if (this.checkSum) {
+      const checkSumByte = decodedBuf.subarray(-1)[0];
+      const checkSum =
+        decodedBuf.subarray(0, -1).reduce((prev, curr) => prev + curr, 0) % 256;
+      if (checkSum !== checkSumByte) {
+        throw new errors.CheckSumError('Checksum mismatch');
+      }
+    }
+    const encryptedBuf = decodedBuf.subarray(0, this.checkSum ? -1 : undefined);
 
     const concatBuf = this.transformer.decrypt(encryptedBuf);
 
