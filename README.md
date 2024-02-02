@@ -4,9 +4,9 @@
 
 
 ## options
-- version
-- parity
-- classIdentifier
-- seed
 - key
+- blockSize
+- headerSize
+- usePrefixSalt
+- encoder
 

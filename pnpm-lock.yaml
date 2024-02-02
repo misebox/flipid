@@ -4,13 +4,13 @@ specifiers:
   '@types/node': ^20.11.5
   '@vitest/coverage-v8': ^1.2.1
   '@vitest/ui': ^1.2.1
-  bufferbase: ^1.2.2
+  bufferbase: ^1.2.3
   tsx: ^4.7.0
   typescript: ^5.3.3
   vitest: ^1.2.1
 
 dependencies:
-  bufferbase: 1.2.2
+  bufferbase: 1.2.3
   vitest: 1.2.1_kao4kefop4yfxsey3epi7zuj3m
 
 devDependencies:
@@ -516,8 +516,8 @@ packages:
     dependencies:
       fill-range: 7.0.1
 
-  /bufferbase/1.2.2:
-    resolution: {integrity: sha512-0/1Sb6geJzf2yEjSUyt9DYGVe8xdrjw1P4zXBVyC2uOiJxuNrkZ40cWZrC+WFOkBgc6ap4Z6bJSUrkROBqmUMQ==}
+  /bufferbase/1.2.3:
+    resolution: {integrity: sha512-KKs41mfNTiWo5Ey38gEGcR9Iab5S3mJZDYqYACqCbBx2tEguALJKiZ2K/H/JVcPLiH3YKOLupct16CDOyWABSA==}
     dev: false
 
   /cac/6.7.14:

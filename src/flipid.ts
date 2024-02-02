@@ -3,13 +3,7 @@ import { BufferTransformer } from './transformer.js';
 import { BufferEncoder, Chars } from 'bufferbase';
 import errors from './errors.js';
 
-type FlipIDConstructorOptions = {
-  key?: string;
-  blockSize?: number;
-  headerSize?: number;
-  usePrefixSalt?: boolean;
-  encoder?: BufferEncoder;
-};
+type FlipIDConstructorOptions = {};
 
 /**
  * Generates Flip IDs.
@@ -22,7 +16,13 @@ export class FlipIDGenerator {
   encoder: BufferEncoder;
   transformer: BufferTransformer;
 
-  constructor(options: FlipIDConstructorOptions) {
+  constructor(options: {
+    key?: string;
+    blockSize?: number;
+    headerSize?: number;
+    usePrefixSalt?: boolean;
+    encoder?: BufferEncoder;
+  }) {
     this.key = options.key || '';
     this.blockSize = options.blockSize || 0;
     this.headerSize = options.headerSize || 1;
@@ -65,9 +65,9 @@ export class FlipIDGenerator {
    */
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
-    if (this.usePrefixSalt && prefixSalt === '') {
-      throw new errors.PrefixSaltRequiredError(
-        `usePrefixSalt is true but prefixSalt is empty`
+    if (this.usePrefixSalt && prefixSalt.length !== 1) {
+      throw new errors.InvalidArgumentError(
+        `usePrefixSalt is true but prefixSalt is not a single character`
       );
     } else if (!this.usePrefixSalt && prefixSalt !== '') {
       throw new errors.InvalidArgumentError(
@@ -99,8 +99,10 @@ export class FlipIDGenerator {
       Buffer.from(newSeedHex, 'hex'),
     ]);
     const encrypted = this.transformer.encrypt(block, iv);
+
+    console.log(Buffer.concat([encrypted, iv]));
     const encoded = this.encoder.encode(Buffer.concat([encrypted, iv]));
-    return this.usePrefixSalt ? prefixSalt + encoded : encoded;
+    return this.usePrefixSalt ? salt + encoded : encoded;
   }
 
   /**
@@ -133,22 +135,25 @@ export class FlipIDGenerator {
    * Decodes the encrypted string and returns the original data.
    */
   decodeToBuffer(encoded: string): Buffer {
+    let saltSize = 0;
+    let saltBuffer = Buffer.alloc(0);
+    if (this.usePrefixSalt) {
+      saltBuffer = Buffer.from(encoded[0]);
+      saltSize = 1;
+      encoded = encoded.slice(1);
+    }
     const concatBuf = this.encoder.decode(
       encoded,
-      this.headerSize + this.blockSize
+      saltSize + this.headerSize + this.blockSize
     );
+    console.log(concatBuf);
 
-    const sumBuf = Buffer.alloc(this.headerSize);
-    concatBuf.subarray(-this.headerSize).copy(sumBuf);
+    const iv = Buffer.alloc(saltSize + this.headerSize);
+    concatBuf.subarray(this.blockSize).copy(iv);
     const encryptedBlock = Buffer.alloc(this.blockSize);
-    concatBuf
-      .subarray(0, -this.headerSize)
-      .copy(
-        encryptedBlock,
-        concatBuf.length - this.headerSize - this.blockSize
-      );
+    concatBuf.subarray(0, this.blockSize).copy(encryptedBlock);
 
-    const decryptedBlock = this.transformer.decrypt(encryptedBlock, sumBuf);
+    const decryptedBlock = this.transformer.decrypt(encryptedBlock, iv);
     return decryptedBlock;
   }
 }

@@ -7,23 +7,17 @@ export const exampleFlipIDGenerator = () => {
   const key = 'secret';
 
   console.log('FlipIDGenerator');
-  const generator = new FlipIDGenerator({ key, blockSize: 5 });
+  const generator = new FlipIDGenerator({
+    key,
+    blockSize: 5,
+    usePrefixSalt: true,
+  });
   const result = [];
   for (let value of [
-    1,
-    2,
-    3,
-    10,
-    11,
-    100,
-    101,
-    1000,
-    123456,
-    123456789,
-    4294967296n,
+    1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789, 4294967295,
   ]) {
-    const encoded = generator.encodeNumber(value);
-    const decoded = generator.decodeToBigInt(encoded);
+    const encoded = generator.encodeNumber(value, 'p');
+    const decoded = generator.decodeToNumber(encoded);
     result.push({ value, encoded, decoded });
   }
   return result;

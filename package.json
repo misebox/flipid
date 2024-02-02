@@ -16,7 +16,7 @@
     "tsx": "tsx"
   },
   "dependencies": {
-    "bufferbase": "^1.2.2",
+    "bufferbase": "^1.2.3",
     "vitest": "^1.2.1"
   },
   "devDependencies": {
