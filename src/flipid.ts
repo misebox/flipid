@@ -158,6 +158,7 @@ export class FlipIDGenerator {
       const checkSumByte = decodedBuf.subarray(-1)[0];
       const checkSum =
         decodedBuf.subarray(0, -1).reduce((prev, curr) => prev + curr, 0) % 256;
+      console.log(checkSum, checkSumByte);
       if (checkSum !== checkSumByte) {
         throw new errors.CheckSumError('Checksum mismatch');
       }

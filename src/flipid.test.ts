@@ -128,7 +128,7 @@ describe('FlipIDGenerator', () => {
         blockSize: 5,
         checkSum: true,
       });
-      const data = 'Hello World';
+      const data = 'XXXXXXX';
 
       expect(() => g1.decodeToBuffer(data)).toThrowError(errors.CheckSumError);
     });
