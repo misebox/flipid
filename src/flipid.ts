@@ -3,8 +3,6 @@ import { BufferTransformer } from './transformer.js';
 import { BufferEncoder, Chars } from 'bufferbase';
 import errors from './errors.js';
 
-type FlipIDConstructorOptions = {};
-
 /**
  * Generates Flip IDs.
  */

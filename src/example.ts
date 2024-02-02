@@ -13,10 +13,10 @@ export const exampleFlipIDGenerator = () => {
     usePrefixSalt: true,
   });
   const result = [];
-  // for (let value of [
-  //   1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789, 4294967295,
-  // ]) {
-  for (let value = 0; value < 20; value++) {
+  for (let value of [
+    1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789, 4294967295,
+  ]) {
+    // for (let value = 0; value < 20; value++) {
     const encoded = generator.encodeNumber(value, 'p');
     const decoded = generator.decodeToNumber(encoded);
     result.push({ value, encoded, decoded });
