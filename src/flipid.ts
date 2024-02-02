@@ -98,10 +98,10 @@ export class FlipIDGenerator {
       Buffer.from(salt),
       Buffer.from(newSeedHex, 'hex'),
     ]);
-    const encrypted = this.transformer.encrypt(block, iv);
-
-    console.log(Buffer.concat([encrypted, iv]));
-    const encoded = this.encoder.encode(Buffer.concat([encrypted, iv]));
+    const encrypted = this.transformer.encrypt(
+      Buffer.concat([this.transformer.encrypt(block, iv), iv])
+    );
+    const encoded = this.encoder.encode(encrypted);
     return this.usePrefixSalt ? salt + encoded : encoded;
   }
 
@@ -142,11 +142,12 @@ export class FlipIDGenerator {
       saltSize = 1;
       encoded = encoded.slice(1);
     }
-    const concatBuf = this.encoder.decode(
+    const encryptedBuf = this.encoder.decode(
       encoded,
       saltSize + this.headerSize + this.blockSize
     );
-    console.log(concatBuf);
+
+    const concatBuf = this.transformer.decrypt(encryptedBuf);
 
     const iv = Buffer.alloc(saltSize + this.headerSize);
     concatBuf.subarray(this.blockSize).copy(iv);

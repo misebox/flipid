@@ -13,9 +13,10 @@ export const exampleFlipIDGenerator = () => {
     usePrefixSalt: true,
   });
   const result = [];
-  for (let value of [
-    1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789, 4294967295,
-  ]) {
+  // for (let value of [
+  //   1, 2, 3, 10, 11, 100, 101, 1000, 123456, 123456789, 4294967295,
+  // ]) {
+  for (let value = 0; value < 20; value++) {
     const encoded = generator.encodeNumber(value, 'p');
     const decoded = generator.decodeToNumber(encoded);
     result.push({ value, encoded, decoded });
@@ -59,3 +60,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('');
   }
 }
+
+const g = new FlipIDGenerator({
+  key: 'secret',
+  blockSize: 6,
+  usePrefixSalt: true,
+});
+
+const enc = g.encodeBuffer(Buffer.from('string'), 'p');
+console.log(enc);

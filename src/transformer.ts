@@ -6,11 +6,12 @@ import { Buffer } from 'node:buffer';
 export const xorBuffer = (lhv: Buffer, rhv: Buffer) => {
   let result = Buffer.from(lhv);
 
-  for (let i = 0; i < rhv.length; i += lhv.length) {
-    const part = rhv.subarray(i, i + lhv.length);
-    for (let i = 0; i < result.length && i < part.length; i++) {
-      result[i] = result[i] ^ part[i];
-    }
+  let i = 0;
+  while (i < lhv.length || i < rhv.length) {
+    const li = i % lhv.length;
+    const ri = i % rhv.length;
+    result[li] = result[li] ^ rhv[ri];
+    i++;
   }
 
   return result;
@@ -20,7 +21,7 @@ export const xorBuffer = (lhv: Buffer, rhv: Buffer) => {
  * Creates a pseudo-random number generator based on the seed.
  */
 const createPrng = (seedByte: number) => {
-  return function () {
+  return (): number => {
     var x = Math.sin(seedByte++) * 10000;
     return x - Math.floor(x);
   };
@@ -102,20 +103,20 @@ export class BufferTransformer {
   /**
    * Encrypts the block using the key and initialized vector.
    */
-  encrypt(block: Buffer, iv: Buffer) {
-    if (this.key.length > 0 && this.key.length < block.length) {
-      throw new Error('Key must be at least as long as the block');
-    }
+  encrypt(block: Buffer, iv: Buffer = Buffer.alloc(0)) {
+    // if (this.key.length > 0 && this.key.length < block.length) {
+    //   throw new Error('Key must be at least as long as the block');
+    // }
     const xorWithKey = xorBuffer(block, this.key);
-    const xorWithSeed = xorBuffer(xorWithKey, iv);
-    const shuffled = shuffle(shuffle(xorWithSeed, this.key), iv);
+    const xorWithIV = xorBuffer(xorWithKey, iv);
+    const shuffled = shuffle(shuffle(xorWithIV, this.key), iv);
     return shuffled;
   }
 
   /**
    * Decrypts the encrypted buffer using the key and initialized vector.
    */
-  decrypt(encrypted: Buffer, iv: Buffer) {
+  decrypt(encrypted: Buffer, iv: Buffer = Buffer.alloc(0)) {
     const shuffledBack = unshuffle(unshuffle(encrypted, iv), this.key);
     const xorWithSeed = xorBuffer(shuffledBack, iv);
     return xorBuffer(xorWithSeed, this.key);

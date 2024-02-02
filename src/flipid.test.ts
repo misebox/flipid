@@ -9,7 +9,7 @@ describe('FlipIDGenerator', () => {
 
       const res = g.encode(data);
 
-      expect(res).toEqual('0187HWYRM');
+      expect(res).toEqual('3RF1XPER0Y');
     });
 
     it('should return the same result as another instance with the same key', () => {
@@ -87,7 +87,7 @@ describe('FlipIDGenerator', () => {
   describe('decode', () => {
     it('should return the expected result', () => {
       const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
-      const encrypted = '0187HWYRM';
+      const encrypted = '3RF1XPER0Y';
 
       const res = g.decodeToBuffer(encrypted);
 
