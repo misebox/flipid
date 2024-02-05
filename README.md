@@ -17,5 +17,7 @@ See [src/example.ts](/src/example.ts)
 - blockSize
 - headerSize
 - usePrefixSalt
+- checkSum
 - encoder
+
 

@@ -11,6 +11,7 @@ export const exampleFlipIDGenerator = () => {
     key,
     blockSize: 5,
     usePrefixSalt: true,
+    checkSum: true,
   });
   const result = [];
   for (let value of [
