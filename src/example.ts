@@ -60,16 +60,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('');
   }
 }
-
-const g = new FlipIDGenerator({
-  key: 'secret',
-  blockSize: 6,
-  usePrefixSalt: true,
-  checkSum: true,
-});
-
-const enc = g.encodeBuffer(Buffer.from('string'), 'p');
-console.log(enc);
-const dec = g.decodeToBuffer(enc);
-console.log(dec.toString('utf8'));
-g.decodeToBuffer('hello');

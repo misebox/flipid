@@ -3,32 +3,42 @@ import { BufferTransformer } from './transformer.js';
 import { BufferEncoder, Chars } from 'bufferbase';
 import errors from './errors.js';
 
+type FlipIDGeneratorOptions = {
+  key: string;
+  blockSize?: number;
+  headerSize?: number;
+  checkSum?: boolean;
+  usePrefixSalt?: boolean;
+  encoder?: BufferEncoder;
+};
+
 /**
  * Generates Flip IDs.
  */
 export class FlipIDGenerator {
+  transformer: BufferTransformer;
+  // options
   key: string;
   blockSize: number;
   headerSize: number;
   checkSum: boolean;
   usePrefixSalt: boolean;
   encoder: BufferEncoder;
-  transformer: BufferTransformer;
 
-  constructor(options: {
-    key?: string;
-    blockSize?: number;
-    headerSize?: number;
-    checkSum?: boolean;
-    usePrefixSalt?: boolean;
-    encoder?: BufferEncoder;
-  }) {
-    this.key = options.key || '';
-    this.blockSize = options.blockSize || 0;
-    this.headerSize = options.headerSize || 1;
-    this.checkSum = options.checkSum || false;
-    this.usePrefixSalt = options.usePrefixSalt || false;
-    this.encoder = options.encoder || new BufferEncoder(Chars.Base32Crockford);
+  constructor({
+    key,
+    blockSize = 4,
+    headerSize = 1,
+    checkSum = false,
+    usePrefixSalt = false,
+    encoder = new BufferEncoder(Chars.Base32Crockford),
+  }: FlipIDGeneratorOptions) {
+    this.key = key;
+    this.blockSize = blockSize;
+    this.headerSize = headerSize;
+    this.checkSum = checkSum;
+    this.usePrefixSalt = usePrefixSalt;
+    this.encoder = encoder;
     this.transformer = new BufferTransformer(Buffer.from(this.key));
   }
 

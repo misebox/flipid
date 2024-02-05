@@ -128,9 +128,13 @@ describe('FlipIDGenerator', () => {
         blockSize: 5,
         checkSum: true,
       });
-      const data = 'XXXXXXX';
+      const data = 'hello';
+      const encoded = g1.encodeBuffer(Buffer.from(data));
+      const checksumBroken = encoded.slice(0, encoded.length - 1) + '0';
 
-      expect(() => g1.decodeToBuffer(data)).toThrowError(errors.CheckSumError);
+      expect(() => g1.decodeToBuffer(checksumBroken)).toThrowError(
+        errors.CheckSumError
+      );
     });
   });
   describe('constructor arguments', () => {
