@@ -2,23 +2,15 @@
     "compilerOptions": {
         "module": "node16",
         "target": "es2020",
-
         "strict": true,
-        "skipLibCheck": true,
-
-        "types": [
-            "node"
-        ],
+        "verbatimModuleSyntax": true,
         "declaration": true,
+        "sourceMap": true,
+        "declarationMap": true,
         "pretty": true,
         "newLine": "lf",
         "outDir": "./dist"
     },
-    "include": [
-        "src/**/*.ts"
-, "src/buffer-transformer.js"    ],
-    "exclude": [
-        "node_modules",
-        "**/*.test.ts"
-    ]
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules", "**/*.test.ts"]
 }
