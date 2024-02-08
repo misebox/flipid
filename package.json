@@ -1,6 +1,6 @@
 {
   "name": "flipid",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Simple and Reversible ID Transformation",
   "type": "module",
   "types": "./dist/index.d.ts",

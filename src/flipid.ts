@@ -45,10 +45,15 @@ export class FlipIDGenerator {
   /**
    * Encodes the data into a Flip ID.
    */
-  encode(data: number | bigint | Buffer, prefixSalt: string = ''): string {
+  encode(
+    data: number | bigint | string | Buffer,
+    prefixSalt: string = ''
+  ): string {
     // Convert data to buffer
     if (data instanceof Buffer) {
       return this.encodeBuffer(data, prefixSalt);
+    } else if (typeof data === 'string') {
+      return this.encodeString(data, prefixSalt);
     } else if (typeof data === 'number' || typeof data === 'bigint') {
       return this.encodeNumber(data, prefixSalt);
     } else {
@@ -66,6 +71,19 @@ export class FlipIDGenerator {
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
     const tmpBuf = Buffer.from(tmp, 'hex');
+    const block = Buffer.alloc(this.blockSize);
+    tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    return this.encodeBuffer(block, prefixSalt);
+  }
+
+  /**
+   * Encodes the string into a Flip ID with a prefix salt.
+   */
+  encodeString(str: string | bigint, prefixSalt: string = ''): string {
+    if (typeof str !== 'string') {
+      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
+    }
+    const tmpBuf = Buffer.from(str, 'utf8');
     const block = Buffer.alloc(this.blockSize);
     tmpBuf.copy(block, this.blockSize - tmpBuf.length);
     return this.encodeBuffer(block, prefixSalt);
@@ -145,6 +163,15 @@ export class FlipIDGenerator {
       num = num * 256n + BigInt(decryptedBlock[i]);
     }
     return num;
+  }
+
+  /**
+   * Decodes the encrypted string and returns the original data as a string.
+   */
+  decodeToString(encoded: string): string {
+    const decryptedBlock = this.decodeToBuffer(encoded);
+    const plaintext = decryptedBlock.toString('utf8');
+    return plaintext;
   }
 
   /**

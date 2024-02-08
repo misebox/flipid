@@ -122,6 +122,13 @@ describe('FlipIDGenerator', () => {
         expect(value).toEqual(decrypted);
       }
     });
+    it('decode should return the original string that was passed into encode', () => {
+      const g = new FlipIDGenerator({ key: 'secret', blockSize: 10 });
+      const encrypted = g.encodeString('helloworld');
+      const decrypted = g.decodeToString(encrypted);
+
+      expect(decrypted).toEqual('helloworld');
+    });
     it('should throw CheckSumError if checksum is mismatch', () => {
       const g1 = new FlipIDGenerator({
         key: 'secret',
