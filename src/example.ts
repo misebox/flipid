@@ -3,7 +3,7 @@ import { BufferTransformer } from './transformer.js';
 import { FlipIDGenerator } from './flipid.js';
 
 // Example usage
-const exampleFlipIDGenerator = () => {
+export const exampleFlipIDGenerator = () => {
   const key = 'secret';
 
   console.log('FlipIDGenerator');
