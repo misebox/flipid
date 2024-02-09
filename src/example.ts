@@ -9,7 +9,7 @@ export const exampleFlipIDGenerator = () => {
   console.log('FlipIDGenerator');
   const generator = new FlipIDGenerator({
     key,
-    blockSize: 5,
+    blockSize: 0,
     usePrefixSalt: true,
     checkSum: true,
   });

@@ -27,7 +27,7 @@ export class FlipIDGenerator {
 
   constructor({
     key,
-    blockSize = 4,
+    blockSize = 0,
     headerSize = 1,
     checkSum = false,
     usePrefixSalt = false,
@@ -71,8 +71,13 @@ export class FlipIDGenerator {
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
     const tmpBuf = Buffer.from(tmp, 'hex');
-    const block = Buffer.alloc(this.blockSize);
-    tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    let block: Buffer;
+    if (this.blockSize > 0) {
+      block = Buffer.alloc(this.blockSize);
+      tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    } else {
+      block = tmpBuf;
+    }
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -84,8 +89,8 @@ export class FlipIDGenerator {
       throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
     const tmpBuf = Buffer.from(str, 'utf8');
-    const block = Buffer.alloc(this.blockSize);
-    tmpBuf.copy(block, this.blockSize - tmpBuf.length);
+    const block = this.blockSize > 0 ? Buffer.alloc(this.blockSize) : tmpBuf;
+    tmpBuf.copy(block, block.length - tmpBuf.length);
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -103,14 +108,14 @@ export class FlipIDGenerator {
         `usePrefixSalt is false but prefixSalt is not empty`
       );
     }
-    if (this.blockSize && buffer.length > this.blockSize) {
+    if (this.blockSize > 0 && buffer.length > this.blockSize) {
       throw new errors.BlockTooLargeError(
         `buffer size (${buffer.length}) > block size (${this.blockSize})`
       );
     }
     // Pad the buffer with zeros
     let block: Buffer;
-    if (this.blockSize) {
+    if (this.blockSize > 0) {
       block = Buffer.alloc(this.blockSize);
       buffer.copy(block, this.blockSize - buffer.length);
     } else {
@@ -144,11 +149,17 @@ export class FlipIDGenerator {
    */
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
-    const data = Buffer.alloc(this.blockSize);
-    decryptedBlock.copy(data, this.blockSize - decryptedBlock.length);
     let num = 0;
-    for (let i = 0; i < decryptedBlock.length; i++) {
-      num = num * 256 + decryptedBlock[i];
+
+    let data: Buffer;
+    if (this.blockSize > 0) {
+      data = Buffer.alloc(this.blockSize);
+      decryptedBlock.copy(data, this.blockSize - decryptedBlock.length);
+    } else {
+      data = decryptedBlock;
+    }
+    for (let i = 0; i < data.length; i++) {
+      num = num * 256 + data[i];
     }
     return num;
   }
@@ -188,14 +199,15 @@ export class FlipIDGenerator {
     const checkSumSize = this.checkSum ? 1 : 0;
     const decodedBuf = this.encoder.decode(
       encoded,
-      saltSize + this.headerSize + this.blockSize + checkSumSize
+      this.blockSize > 0
+        ? saltSize + this.headerSize + this.blockSize + checkSumSize
+        : undefined
     );
 
     if (this.checkSum) {
       const checkSumByte = decodedBuf.subarray(-1)[0];
       const checkSum =
         decodedBuf.subarray(0, -1).reduce((prev, curr) => prev + curr, 0) % 256;
-      console.log(checkSum, checkSumByte);
       if (checkSum !== checkSumByte) {
         throw new errors.CheckSumError('Checksum mismatch');
       }
@@ -203,11 +215,15 @@ export class FlipIDGenerator {
     const encryptedBuf = decodedBuf.subarray(0, this.checkSum ? -1 : undefined);
 
     const concatBuf = this.transformer.decrypt(encryptedBuf);
+    const blockSize =
+      this.blockSize > 0
+        ? this.blockSize
+        : concatBuf.length - saltSize - this.headerSize;
 
     const iv = Buffer.alloc(saltSize + this.headerSize);
-    concatBuf.subarray(this.blockSize).copy(iv);
-    const encryptedBlock = Buffer.alloc(this.blockSize);
-    concatBuf.subarray(0, this.blockSize).copy(encryptedBlock);
+    concatBuf.subarray(blockSize).copy(iv);
+    const encryptedBlock = Buffer.alloc(blockSize);
+    concatBuf.subarray(0, blockSize).copy(encryptedBlock);
 
     const decryptedBlock = this.transformer.decrypt(encryptedBlock, iv);
     return decryptedBlock;
