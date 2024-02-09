@@ -4,19 +4,21 @@ specifiers:
   '@types/node': ^20.11.5
   '@vitest/coverage-v8': ^1.2.1
   '@vitest/ui': ^1.2.1
-  bufferbase: ^1.2.3
+  bufferbase: ^1.3.0
+  tsconfig-to-dual-package: ^1.2.0
   tsx: ^4.7.0
   typescript: ^5.3.3
   vitest: ^1.2.1
 
 dependencies:
-  bufferbase: 1.2.3
+  bufferbase: 1.3.0
   vitest: 1.2.1_kao4kefop4yfxsey3epi7zuj3m
 
 devDependencies:
   '@types/node': 20.11.5
   '@vitest/coverage-v8': 1.2.1_vitest@1.2.1
   '@vitest/ui': 1.2.1_vitest@1.2.1
+  tsconfig-to-dual-package: 1.2.0_typescript@5.3.3
   tsx: 4.7.0
   typescript: 5.3.3
 
@@ -516,8 +518,8 @@ packages:
     dependencies:
       fill-range: 7.0.1
 
-  /bufferbase/1.2.3:
-    resolution: {integrity: sha512-KKs41mfNTiWo5Ey38gEGcR9Iab5S3mJZDYqYACqCbBx2tEguALJKiZ2K/H/JVcPLiH3YKOLupct16CDOyWABSA==}
+  /bufferbase/1.3.0:
+    resolution: {integrity: sha512-LfcY8SBGjFLG2Hll+jtiT2A38bYLW/BvhXkv1OoUzlYreH7hsjnYqzEeGlcQDF8/gukLXY9PvbncB0mWts+7eA==}
     dev: false
 
   /cac/6.7.14:
@@ -943,6 +945,15 @@ packages:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
     dev: true
 
+  /resolve-tsconfig/1.3.0_typescript@5.3.3:
+    resolution: {integrity: sha512-Ba5mo3soshb2CnIcNFz75F/80H/2eMVxrlmdgoSDNH7Lr6UAoT3BvxNtc7+VXqKSBlC0SJk2qSXOTcy0/p7cFw==}
+    engines: {node: '>=16', pnpm: '>=7'}
+    peerDependencies:
+      typescript: '*'
+    dependencies:
+      typescript: 5.3.3
+    dev: true
+
   /reusify/1.0.4:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
@@ -1072,6 +1083,17 @@ packages:
   /totalist/3.0.1:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
     engines: {node: '>=6'}
+
+  /tsconfig-to-dual-package/1.2.0_typescript@5.3.3:
+    resolution: {integrity: sha512-UtMinqTLfWr9fX6KidLsEcCJoA/jSLPIS00ohpQybMSxA3LlJCRf2DsGPw4AJJ8AP4FOHfbQJFJ5XgLoL7RoLw==}
+    engines: {node: '>=18.3.0 || >=16.17.0'}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=4.0.0'
+    dependencies:
+      resolve-tsconfig: 1.3.0_typescript@5.3.3
+      typescript: 5.3.3
+    dev: true
 
   /tsx/4.7.0:
     resolution: {integrity: sha512-I+t79RYPlEYlHn9a+KzwrvEwhJg35h/1zHsLC2JXvhC2mdynMv6Zxzvhv5EMV6VF5qJlLlkSnMVvdZV3PSIGcg==}

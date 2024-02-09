@@ -3,7 +3,7 @@ import { BufferTransformer } from './transformer.js';
 import { FlipIDGenerator } from './flipid.js';
 
 // Example usage
-export const exampleFlipIDGenerator = () => {
+const exampleFlipIDGenerator = () => {
   const key = 'secret';
 
   console.log('FlipIDGenerator');
@@ -49,7 +49,7 @@ export const exampleSimpleCipher = () => {
   }
   return result;
 };
-if (import.meta.url === `file://${process.argv[1]}`) {
+export const runExamples = () => {
   {
     const result = exampleFlipIDGenerator();
     console.table(result);
@@ -60,4 +60,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.table(result);
     console.log('');
   }
-}
+};
