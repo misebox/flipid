@@ -89,8 +89,19 @@ export class FlipIDGenerator {
       throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
     const tmpBuf = Buffer.from(str, 'utf8');
-    const block = this.blockSize > 0 ? Buffer.alloc(this.blockSize) : tmpBuf;
-    tmpBuf.copy(block, block.length - tmpBuf.length);
+    let block: Buffer;
+    if (this.blockSize > 0) {
+      block = Buffer.alloc(this.blockSize);
+      if (tmpBuf.length > this.blockSize) {
+        throw new errors.BlockTooLargeError(
+          `buffer size (${tmpBuf.length}) > block size (${this.blockSize})`
+        );
+      }
+      // align right
+      tmpBuf.copy(block, block.length - tmpBuf.length);
+    } else {
+      block = tmpBuf;
+    }
     return this.encodeBuffer(block, prefixSalt);
   }
 
