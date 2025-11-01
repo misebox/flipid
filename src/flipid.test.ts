@@ -73,17 +73,6 @@ describe('FlipIDGenerator', () => {
 
       expect(res1).not.toEqual(res2);
     });
-
-    it('should generate different string when different headerSize', () => {
-      const g1 = new FlipIDGenerator({ key: 'secret1', blockSize: 7 });
-      const g2 = new FlipIDGenerator({ key: 'secret2', blockSize: 7 });
-      const data = Buffer.from('hello');
-
-      const res1 = g1.encode(data);
-      const res2 = g2.encode(data);
-
-      expect(res1).not.toEqual(res2);
-    });
   });
   describe('decode', () => {
     it('should return the expected result', () => {

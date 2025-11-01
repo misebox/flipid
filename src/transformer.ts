@@ -22,7 +22,7 @@ export const xorBuffer = (lhv: Buffer, rhv: Buffer) => {
  */
 const createPrng = (seedByte: number) => {
   return (): number => {
-    var x = Math.sin(seedByte++) * 10000;
+    let x = Math.sin(seedByte++) * 10000;
     return x - Math.floor(x);
   };
 };
@@ -37,7 +37,6 @@ const generateShuffleTable = (
     const pairs: [number, number][] = [];
 
     for (let i = blockSize - 1; i > 0; i--) {
-      // indices[i] = Math.floor(prng() * (i + 1));
       pairs.push([i, Math.floor(prng() * (i + 1))]);
     }
     table.push(pairs);
@@ -63,21 +62,10 @@ export const unshuffle = (block: Buffer, seed: Buffer) => {
   for (const pairs of shuffleTable) {
     pairs.reverse();
     for (const [i, j] of pairs) {
-      // for (let i = 1; i < result.length; i++) {
       [result[i], result[j]] = [result[j], result[i]];
     }
   }
   return result;
-};
-
-/**
- * Decrypts the encrypted buffer using the key and seed.
- */
-export const decrypt = (encrypted: Buffer, key: Buffer, sumBuf: Buffer) => {
-  const shuffledBack = unshuffle(unshuffle(encrypted, sumBuf), key);
-  // const shuffledBack = unshuffle(encrypted, sumBuf);
-  const xorWithSeed = xorBuffer(shuffledBack, sumBuf);
-  return xorBuffer(xorWithSeed, key);
 };
 
 /**
@@ -104,9 +92,6 @@ export class BufferTransformer {
    * Encrypts the block using the key and initialized vector.
    */
   encrypt(block: Buffer, iv: Buffer = Buffer.alloc(0)) {
-    // if (this.key.length > 0 && this.key.length < block.length) {
-    //   throw new Error('Key must be at least as long as the block');
-    // }
     const xorWithKey = xorBuffer(block, this.key);
     const xorWithIV = xorBuffer(xorWithKey, iv);
     const shuffled = shuffle(shuffle(xorWithIV, this.key), iv);

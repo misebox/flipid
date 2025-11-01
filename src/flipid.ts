@@ -84,7 +84,7 @@ export class FlipIDGenerator {
   /**
    * Encodes the string into a Flip ID with a prefix salt.
    */
-  encodeString(str: string | bigint, prefixSalt: string = ''): string {
+  encodeString(str: string, prefixSalt: string = ''): string {
     if (typeof str !== 'string') {
       throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
