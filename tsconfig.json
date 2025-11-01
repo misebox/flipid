@@ -3,6 +3,7 @@
         "module": "nodenext",
         "moduleResolution": "NodeNext",
         "target": "es2020",
+        "lib": ["ES2020"],
         "strict": true,
         "verbatimModuleSyntax": true,
         "declaration": true,

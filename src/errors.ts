@@ -34,7 +34,7 @@ export class InvalidArgumentError extends Error {
 export class CheckSumError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'ChecksumError';
+    this.name = 'CheckSumError';
   }
 }
 
