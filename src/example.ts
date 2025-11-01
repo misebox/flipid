@@ -60,4 +60,18 @@ export const runExamples = () => {
     console.table(result);
     console.log('');
   }
+  {
+
+    const generator = new FlipIDGenerator({
+      key: 'hello',
+      blockSize: 0,
+      usePrefixSalt: false,
+      checkSum: true,
+    });
+    const result = [];
+    const value = '👨‍👦‍👦👨‍👩‍👦‍👦';
+    const encoded = generator.encode(value);
+    const decoded = generator.decodeToString(encoded);
+    console.log({ value, encoded, decoded });
+  }
 };
