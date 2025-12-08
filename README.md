@@ -164,6 +164,27 @@ try {
 }
 ```
 
+### Signed Integers
+
+FlipID only accepts unsigned integers. Use the utility functions for signed values:
+
+```typescript
+import { FlipID, signedToUnsigned, unsignedToSigned } from 'flipid';
+
+const flipid = new FlipID({ key: 'my-app-key', blockSize: 4 });
+
+// Encode signed integer
+const encoded = flipid.encodeNumber(signedToUnsigned(-1));    // 4294967295
+const decoded = unsignedToSigned(flipid.decodeToNumber(encoded)); // -1
+
+// For BigInt (64-bit)
+import { signedToUnsignedBigInt, unsignedToSignedBigInt } from 'flipid';
+
+const flipid8 = new FlipID({ key: 'my-app-key', blockSize: 8 });
+const encoded8 = flipid8.encodeBigInt(signedToUnsignedBigInt(-1n));
+const decoded8 = unsignedToSignedBigInt(flipid8.decodeToBigInt(encoded8)); // -1n
+```
+
 ## API
 
 ### `FlipID`
