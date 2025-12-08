@@ -22,3 +22,10 @@ export {
 } from './errors.js';
 // Re-export from bufferbase for convenience
 export { Codecs, createCodec, type ICodec } from 'bufferbase';
+// Utilities
+export {
+  signedToUnsigned,
+  unsignedToSigned,
+  signedToUnsignedBigInt,
+  unsignedToSignedBigInt,
+} from './utils.js';
