@@ -1,11 +1,11 @@
 import errors from './errors';
-import { FlipIDGenerator } from './flipid.js';
+import { FlipID } from './flipid.js';
 import { describe, it, expect } from 'vitest';
 
-describe('FlipIDGenerator', () => {
+describe('FlipID', () => {
   describe('encode', () => {
     it('should return the expected result', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
@@ -14,8 +14,8 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should return the same result as another instance with the same key', () => {
-      const g1 = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
-      const g2 = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g1 = new FlipID({ key: 'secret', blockSize: 5 });
+      const g2 = new FlipID({ key: 'secret', blockSize: 5 });
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -25,7 +25,7 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should return the string that is difference from original', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
@@ -34,8 +34,8 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should generate different string when different key used', () => {
-      const g1 = new FlipIDGenerator({ key: 'secret1', blockSize: 7 });
-      const g2 = new FlipIDGenerator({ key: 'secret2', blockSize: 7 });
+      const g1 = new FlipID({ key: 'secret1', blockSize: 7 });
+      const g2 = new FlipID({ key: 'secret2', blockSize: 7 });
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -45,8 +45,8 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should generate different string when different blockSize used', () => {
-      const g1 = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
-      const g2 = new FlipIDGenerator({ key: 'secret', blockSize: 6 });
+      const g1 = new FlipID({ key: 'secret', blockSize: 5 });
+      const g2 = new FlipID({ key: 'secret', blockSize: 6 });
       const data = Buffer.from('hello');
 
       const res1 = g1.encode(data);
@@ -56,12 +56,12 @@ describe('FlipIDGenerator', () => {
     });
 
     it('should generate different string when different headerSize used', () => {
-      const g1 = new FlipIDGenerator({
+      const g1 = new FlipID({
         key: 'secret',
         blockSize: 5,
         headerSize: 1,
       });
-      const g2 = new FlipIDGenerator({
+      const g2 = new FlipID({
         key: 'secret',
         blockSize: 5,
         headerSize: 2,
@@ -76,7 +76,7 @@ describe('FlipIDGenerator', () => {
   });
   describe('decode', () => {
     it('should return the expected result', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const encrypted = '3RF1XPER0Y';
 
       const res = g.decodeToBuffer(encrypted);
@@ -86,7 +86,7 @@ describe('FlipIDGenerator', () => {
   });
   describe('encode and decode reversibility', () => {
     it('decode should return the original buffer that was passed into encode', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const data = Buffer.from('hello', 'utf8');
 
       const encrypted = g.encode(data);
@@ -95,14 +95,14 @@ describe('FlipIDGenerator', () => {
       expect(decrypted).toEqual(data);
     });
     it('decode should return the original number that was passed into encode', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const encrypted = g.encodeNumber(123456789);
       const decrypted = g.decodeToNumber(encrypted);
 
       expect(decrypted).toEqual(123456789);
     });
     it('should handle numbers of various digits correctly', () => {
-      const g = new FlipIDGenerator({ key: 'secretkey', blockSize: 8 });
+      const g = new FlipID({ key: 'secretkey', blockSize: 8 });
       for (let i = 1; i < 62; i++) {
         const value = 2n ** BigInt(i) - 1n;
         const encrypted = g.encodeNumber(value);
@@ -112,14 +112,14 @@ describe('FlipIDGenerator', () => {
       }
     });
     it('decode should return the original string that was passed into encode', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 10 });
+      const g = new FlipID({ key: 'secret', blockSize: 10 });
       const encrypted = g.encodeString('helloworld');
       const decrypted = g.decodeToString(encrypted);
 
       expect(decrypted).toEqual('helloworld');
     });
     it('should throw CheckSumError if checksum is mismatch', () => {
-      const g1 = new FlipIDGenerator({
+      const g1 = new FlipID({
         key: 'secret',
         blockSize: 5,
         checkSum: true,
@@ -135,7 +135,7 @@ describe('FlipIDGenerator', () => {
   });
   describe('constructor arguments', () => {
     it('should use default values when no arguments passed', () => {
-      const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+      const g = new FlipID({ key: 'secret', blockSize: 5 });
       const data = Buffer.from('hello');
 
       const res = g.encode(data);
@@ -149,7 +149,7 @@ describe('FlipIDGenerator', () => {
   describe('edge cases', () => {
     describe('encodeBigInt', () => {
       it('should encode and decode bigint values correctly', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 16 });
+        const g = new FlipID({ key: 'secret', blockSize: 16 });
         const bigValue = 2n ** 64n - 1n;
         const encoded = g.encodeBigInt(bigValue);
         const decoded = g.decodeToBigInt(encoded);
@@ -157,7 +157,7 @@ describe('FlipIDGenerator', () => {
       });
 
       it('should throw InvalidDataTypeError for non-bigint input', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        const g = new FlipID({ key: 'secret', blockSize: 8 });
         expect(() => g.encodeBigInt(123 as unknown as bigint)).toThrowError(
           errors.FlipIDInvalidDataTypeError
         );
@@ -166,7 +166,7 @@ describe('FlipIDGenerator', () => {
 
     describe('decodeToNumber overflow', () => {
       it('should throw NumberOverflowError for values exceeding MAX_SAFE_INTEGER', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        const g = new FlipID({ key: 'secret', blockSize: 8 });
         const bigValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
         const encoded = g.encodeBigInt(bigValue);
         expect(() => g.decodeToNumber(encoded)).toThrowError(
@@ -175,7 +175,7 @@ describe('FlipIDGenerator', () => {
       });
 
       it('should not throw for values within safe integer range', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        const g = new FlipID({ key: 'secret', blockSize: 8 });
         const safeValue = Number.MAX_SAFE_INTEGER;
         const encoded = g.encodeNumber(safeValue);
         const decoded = g.decodeToNumber(encoded);
@@ -185,14 +185,14 @@ describe('FlipIDGenerator', () => {
 
     describe('input validation', () => {
       it('should throw InvalidEncodedStringError for empty string', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+        const g = new FlipID({ key: 'secret', blockSize: 5 });
         expect(() => g.decodeToBuffer('')).toThrowError(
           errors.FlipIDInvalidEncodedStringError
         );
       });
 
       it('should throw InvalidEncodedStringError for invalid characters', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+        const g = new FlipID({ key: 'secret', blockSize: 5 });
         expect(() => g.decodeToBuffer('!!!invalid!!!')).toThrowError(
           errors.FlipIDInvalidEncodedStringError
         );
@@ -201,14 +201,14 @@ describe('FlipIDGenerator', () => {
 
     describe('BlockTooLargeError', () => {
       it('should throw when buffer exceeds blockSize', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
+        const g = new FlipID({ key: 'secret', blockSize: 3 });
         expect(() => g.encodeBuffer(Buffer.from('hello'))).toThrowError(
           errors.FlipIDBlockTooLargeError
         );
       });
 
       it('should throw when string exceeds blockSize', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
+        const g = new FlipID({ key: 'secret', blockSize: 3 });
         expect(() => g.encodeString('hello')).toThrowError(
           errors.FlipIDBlockTooLargeError
         );
@@ -217,7 +217,7 @@ describe('FlipIDGenerator', () => {
 
     describe('prefixSalt edge cases', () => {
       it('should work correctly with usePrefixSalt enabled', () => {
-        const g = new FlipIDGenerator({
+        const g = new FlipID({
           key: 'secret',
           blockSize: 5,
           usePrefixSalt: true,
@@ -228,7 +228,7 @@ describe('FlipIDGenerator', () => {
       });
 
       it('should throw InvalidArgumentError when usePrefixSalt is true but no salt provided', () => {
-        const g = new FlipIDGenerator({
+        const g = new FlipID({
           key: 'secret',
           blockSize: 5,
           usePrefixSalt: true,
@@ -239,7 +239,7 @@ describe('FlipIDGenerator', () => {
       });
 
       it('should throw InvalidArgumentError when usePrefixSalt is false but salt provided', () => {
-        const g = new FlipIDGenerator({
+        const g = new FlipID({
           key: 'secret',
           blockSize: 5,
           usePrefixSalt: false,
@@ -252,7 +252,7 @@ describe('FlipIDGenerator', () => {
 
     describe('blockSize=0 (variable length)', () => {
       it('should handle variable length encoding', () => {
-        const g = new FlipIDGenerator({ key: 'secret', blockSize: 0 });
+        const g = new FlipID({ key: 'secret', blockSize: 0 });
         const data = Buffer.from('variable length data');
         const encoded = g.encode(data);
         const decoded = g.decodeToBuffer(encoded);

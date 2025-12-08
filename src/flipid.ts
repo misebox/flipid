@@ -4,9 +4,9 @@ import { Codec, Codecs, type ICodec } from 'bufferbase';
 import errors from './errors.js';
 
 /**
- * Options for FlipIDGenerator constructor.
+ * Options for FlipID constructor.
  */
-export type FlipIDGeneratorOptions = {
+export type FlipIDOptions = {
   /** Secret key for encryption/decryption */
   key: string;
   /** Fixed block size in bytes. 0 = variable length (default: 0) */
@@ -22,17 +22,17 @@ export type FlipIDGeneratorOptions = {
 };
 
 /**
- * Reversible ID transformation generator.
+ * Reversible ID transformation codec.
  * Encodes numbers, strings, and buffers into obfuscated string identifiers.
  *
  * @example
  * ```typescript
- * const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
- * const encoded = g.encodeNumber(123456);
- * const decoded = g.decodeToNumber(encoded); // 123456
+ * const flipid = new FlipID({ key: 'secret', blockSize: 8 });
+ * const encoded = flipid.encodeNumber(123456);
+ * const decoded = flipid.decodeToNumber(encoded); // 123456
  * ```
  */
-export class FlipIDGenerator {
+export class FlipID {
   transformer: BufferTransformer;
   // options
   key: string;
@@ -49,7 +49,7 @@ export class FlipIDGenerator {
     checkSum = false,
     usePrefixSalt = false,
     encoder = Codecs.base32crockford,
-  }: FlipIDGeneratorOptions) {
+  }: FlipIDOptions) {
     this.key = key;
     this.blockSize = blockSize;
     this.headerSize = headerSize;
@@ -317,3 +317,13 @@ export class FlipIDGenerator {
     return decryptedBlock;
   }
 }
+
+/**
+ * @deprecated Use `FlipID` instead. Will be removed in a future version.
+ */
+export const FlipIDGenerator = FlipID;
+
+/**
+ * @deprecated Use `FlipIDOptions` instead. Will be removed in a future version.
+ */
+export type FlipIDGeneratorOptions = FlipIDOptions;

@@ -23,76 +23,76 @@ npm install flipid
 ### Basic Example
 
 ```typescript
-import { FlipIDGenerator } from 'flipid';
+import { FlipID } from 'flipid';
 
-const generator = new FlipIDGenerator({
+const flipid = new FlipID({
   key: 'your-secret-key',
   blockSize: 8,
 });
 
 // Encode a number
-const encoded = generator.encodeNumber(123456);
+const encoded = flipid.encodeNumber(123456);
 console.log(encoded); // e.g., "3RF1XPER0Y..."
 
 // Decode back to number
-const decoded = generator.decodeToNumber(encoded);
+const decoded = flipid.decodeToNumber(encoded);
 console.log(decoded); // 123456
 ```
 
 ### Encoding Different Types
 
 ```typescript
-const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+const flipid = new FlipID({ key: 'secret', blockSize: 8 });
 
 // Numbers
-const numEncoded = g.encodeNumber(42);
-const numDecoded = g.decodeToNumber(numEncoded);
+const numEncoded = flipid.encodeNumber(42);
+const numDecoded = flipid.decodeToNumber(numEncoded);
 
 // BigInt (for large numbers)
-const bigEncoded = g.encodeBigInt(2n ** 64n - 1n);
-const bigDecoded = g.decodeToBigInt(bigEncoded);
+const bigEncoded = flipid.encodeBigInt(2n ** 64n - 1n);
+const bigDecoded = flipid.decodeToBigInt(bigEncoded);
 
 // Strings
-const strEncoded = g.encodeString('hello');
-const strDecoded = g.decodeToString(strEncoded);
+const strEncoded = flipid.encodeString('hello');
+const strDecoded = flipid.decodeToString(strEncoded);
 
 // Buffers
-const bufEncoded = g.encodeBuffer(Buffer.from('data'));
-const bufDecoded = g.decodeToBuffer(bufEncoded);
+const bufEncoded = flipid.encodeBuffer(Buffer.from('data'));
+const bufDecoded = flipid.decodeToBuffer(bufEncoded);
 
 // Polymorphic encode (auto-detects type)
-g.encode(123);           // number
-g.encode(123n);          // bigint
-g.encode('hello');       // string
-g.encode(Buffer.from('x')); // buffer
+flipid.encode(123);           // number
+flipid.encode(123n);          // bigint
+flipid.encode('hello');       // string
+flipid.encode(Buffer.from('x')); // buffer
 ```
 
 ### Error Handling
 
 ```typescript
 import {
-  FlipIDGenerator,
+  FlipID,
   FlipIDNumberOverflowError,
   FlipIDInvalidEncodedStringError,
   FlipIDBlockTooLargeError,
   FlipIDChecksumError,
 } from 'flipid';
 
-const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+const flipid = new FlipID({ key: 'secret', blockSize: 8 });
 
 try {
   // Throws FlipIDNumberOverflowError if value exceeds Number.MAX_SAFE_INTEGER
-  g.decodeToNumber(encodedLargeValue);
+  flipid.decodeToNumber(encodedLargeValue);
 } catch (e) {
   if (e instanceof FlipIDNumberOverflowError) {
     // Use decodeToBigInt() instead
-    const value = g.decodeToBigInt(encodedLargeValue);
+    const value = flipid.decodeToBigInt(encodedLargeValue);
   }
 }
 
 try {
   // Throws FlipIDInvalidEncodedStringError for invalid input
-  g.decodeToBuffer('!!!invalid!!!');
+  flipid.decodeToBuffer('!!!invalid!!!');
 } catch (e) {
   if (e instanceof FlipIDInvalidEncodedStringError) {
     console.error('Invalid encoded string');
@@ -102,7 +102,7 @@ try {
 
 ## API
 
-### `FlipIDGenerator`
+### `FlipID`
 
 #### Constructor Options
 

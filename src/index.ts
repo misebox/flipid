@@ -1,4 +1,10 @@
-export { FlipIDGenerator, type FlipIDGeneratorOptions } from './flipid.js';
+export {
+  FlipID,
+  type FlipIDOptions,
+  // Deprecated aliases
+  FlipIDGenerator,
+  type FlipIDGeneratorOptions,
+} from './flipid.js';
 export {
   FlipIDInvalidDataTypeError,
   FlipIDBlockTooLargeError,
