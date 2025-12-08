@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { BufferTransformer } from './transformer.js';
+import { BufferTransformer, foldKey } from './transformer.js';
 import { Codec, Codecs, type ICodec } from 'bufferbase';
 import errors from './errors.js';
 
@@ -69,7 +69,16 @@ export class FlipID {
     this.checkSum = checkSum;
     this.usePrefixSalt = usePrefixSalt;
     this.encoder = encoder;
-    this.transformer = new BufferTransformer(Buffer.from(this.key));
+
+    // Fold key to match the data size to avoid multi-pass XOR in xorBuffer.
+    // When blockSize is 0 (variable length), use key as-is.
+    const keyBuf = Buffer.from(this.key);
+    if (blockSize > 0) {
+      const dataSize = blockSize + headerSize + (usePrefixSalt ? 1 : 0);
+      this.transformer = new BufferTransformer(foldKey(keyBuf, dataSize));
+    } else {
+      this.transformer = new BufferTransformer(keyBuf);
+    }
   }
 
   /**
