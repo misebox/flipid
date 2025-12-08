@@ -42,7 +42,7 @@
     "build:esm": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "prepublishOnly": "bun run build",
-    "example": "tsx -e 'import {runExamples} from \"./src/example.ts\"; runExamples();'",
+    "example": "bun run ./src/example.ts",
     "test": "vitest --coverage",
     "test:watch": "vitest watch",
     "tsx": "tsx"

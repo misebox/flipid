@@ -75,3 +75,5 @@ export const runExamples = () => {
     console.log({ value, encoded, decoded });
   }
 };
+
+runExamples()
