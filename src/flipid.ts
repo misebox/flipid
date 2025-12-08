@@ -7,9 +7,9 @@ import errors from './errors.js';
  * Options for FlipID constructor.
  */
 export type FlipIDOptions = {
-  /** Secret key for encryption/decryption */
+  /** Key for encoding/decoding transformation */
   key: string;
-  /** Fixed block size in bytes. 0 = variable length (default: 0) */
+  /** Fixed block size in bytes. 0 = variable length (default: 4) */
   blockSize?: number;
   /** Header size for checksum calculation in bytes (default: 1) */
   headerSize?: number;
@@ -44,12 +44,17 @@ export class FlipID {
 
   constructor({
     key,
-    blockSize = 0,
+    blockSize = 4,
     headerSize = 1,
     checkSum = false,
     usePrefixSalt = false,
     encoder = Codecs.base32crockford,
   }: FlipIDOptions) {
+    if (headerSize < 1 || headerSize > 4) {
+      throw new errors.FlipIDInvalidArgumentError(
+        `headerSize must be between 1 and 4, got ${headerSize}`
+      );
+    }
     this.key = key;
     this.blockSize = blockSize;
     this.headerSize = headerSize;

@@ -20,3 +20,5 @@ export {
   NumberOverflowError,
   InvalidEncodedStringError,
 } from './errors.js';
+// Re-export from bufferbase for convenience
+export { Codecs, createCodec, type ICodec } from 'bufferbase';
