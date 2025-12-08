@@ -45,6 +45,7 @@
     "build:esm": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "prepublishOnly": "bun run build",
+    "release": "semantic-release",
     "example": "bun run ./src/example.ts",
     "test": "vitest --coverage",
     "test:watch": "vitest watch",
