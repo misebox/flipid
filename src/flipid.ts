@@ -1,15 +1,15 @@
 import { Buffer } from 'node:buffer';
 import { BufferTransformer } from './transformer.js';
-import { BufferEncoder, Chars } from 'bufferbase';
+import { Codec, Codecs, type ICodec } from 'bufferbase';
 import errors from './errors.js';
 
-type FlipIDGeneratorOptions = {
+export type FlipIDGeneratorOptions = {
   key: string;
   blockSize?: number;
   headerSize?: number;
   checkSum?: boolean;
   usePrefixSalt?: boolean;
-  encoder?: BufferEncoder;
+  encoder?: ICodec;
 };
 
 /**
@@ -23,7 +23,7 @@ export class FlipIDGenerator {
   headerSize: number;
   checkSum: boolean;
   usePrefixSalt: boolean;
-  encoder: BufferEncoder;
+  encoder: ICodec;
 
   constructor({
     key,
@@ -31,7 +31,7 @@ export class FlipIDGenerator {
     headerSize = 1,
     checkSum = false,
     usePrefixSalt = false,
-    encoder = new BufferEncoder(Chars.Base32Crockford),
+    encoder = Codecs.base32crockford,
   }: FlipIDGeneratorOptions) {
     this.key = key;
     this.blockSize = blockSize;
@@ -40,6 +40,25 @@ export class FlipIDGenerator {
     this.usePrefixSalt = usePrefixSalt;
     this.encoder = encoder;
     this.transformer = new BufferTransformer(Buffer.from(this.key));
+  }
+
+  /**
+   * Pads buffer to blockSize with leading zeros (right-aligned).
+   * If blockSize is 0, returns the original buffer.
+   * @throws BlockTooLargeError if buffer exceeds blockSize
+   */
+  private padBuffer(buffer: Buffer): Buffer {
+    if (this.blockSize === 0) {
+      return buffer;
+    }
+    if (buffer.length > this.blockSize) {
+      throw new errors.BlockTooLargeError(
+        `buffer size (${buffer.length}) > block size (${this.blockSize})`
+      );
+    }
+    const block = Buffer.alloc(this.blockSize);
+    buffer.copy(block, this.blockSize - buffer.length);
+    return block;
   }
 
   /**
@@ -71,13 +90,7 @@ export class FlipIDGenerator {
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
     const tmpBuf = Buffer.from(tmp, 'hex');
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      tmpBuf.copy(block, this.blockSize - tmpBuf.length);
-    } else {
-      block = tmpBuf;
-    }
+    const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -89,19 +102,7 @@ export class FlipIDGenerator {
       throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
     const tmpBuf = Buffer.from(str, 'utf8');
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      if (tmpBuf.length > this.blockSize) {
-        throw new errors.BlockTooLargeError(
-          `buffer size (${tmpBuf.length}) > block size (${this.blockSize})`
-        );
-      }
-      // align right
-      tmpBuf.copy(block, block.length - tmpBuf.length);
-    } else {
-      block = tmpBuf;
-    }
+    const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
@@ -119,19 +120,7 @@ export class FlipIDGenerator {
         `usePrefixSalt is false but prefixSalt is not empty`
       );
     }
-    if (this.blockSize > 0 && buffer.length > this.blockSize) {
-      throw new errors.BlockTooLargeError(
-        `buffer size (${buffer.length}) > block size (${this.blockSize})`
-      );
-    }
-    // Pad the buffer with zeros
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      buffer.copy(block, this.blockSize - buffer.length);
-    } else {
-      block = buffer;
-    }
+    const block = this.padBuffer(buffer);
     const sumVal = block.reduce(
       (prev, curr) => (prev + curr) % 256 ** this.headerSize,
       0
@@ -208,11 +197,13 @@ export class FlipIDGenerator {
       encoded = encoded.slice(1);
     }
     const checkSumSize = this.checkSum ? 1 : 0;
-    const decodedBuf = this.encoder.decode(
-      encoded,
+    const expectedSize =
       this.blockSize > 0
         ? saltSize + this.headerSize + this.blockSize + checkSumSize
-        : undefined
+        : undefined;
+    const decodedBuf = this.encoder.decode(
+      encoded,
+      expectedSize !== undefined ? { size: expectedSize } : undefined
     );
 
     if (this.checkSum) {
