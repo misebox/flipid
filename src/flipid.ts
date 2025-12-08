@@ -3,17 +3,34 @@ import { BufferTransformer } from './transformer.js';
 import { Codec, Codecs, type ICodec } from 'bufferbase';
 import errors from './errors.js';
 
+/**
+ * Options for FlipIDGenerator constructor.
+ */
 export type FlipIDGeneratorOptions = {
+  /** Secret key for encryption/decryption */
   key: string;
+  /** Fixed block size in bytes. 0 = variable length (default: 0) */
   blockSize?: number;
+  /** Header size for checksum calculation in bytes (default: 1) */
   headerSize?: number;
+  /** Enable checksum validation on decode (default: false) */
   checkSum?: boolean;
+  /** Add single-char prefix salt to output (default: false) */
   usePrefixSalt?: boolean;
+  /** Custom encoder from bufferbase (default: Base32Crockford) */
   encoder?: ICodec;
 };
 
 /**
- * Generates Flip IDs.
+ * Reversible ID transformation generator.
+ * Encodes numbers, strings, and buffers into obfuscated string identifiers.
+ *
+ * @example
+ * ```typescript
+ * const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+ * const encoded = g.encodeNumber(123456);
+ * const decoded = g.decodeToNumber(encoded); // 123456
+ * ```
  */
 export class FlipIDGenerator {
   transformer: BufferTransformer;
@@ -62,7 +79,11 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the data into a Flip ID.
+   * Encodes data into a Flip ID (polymorphic).
+   * @param data - Data to encode (number, bigint, string, or Buffer)
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if data type is not supported
    */
   encode(
     data: number | bigint | string | Buffer,
@@ -81,7 +102,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the number into a Flip ID with a prefix salt.
+   * Encodes a number into a Flip ID.
+   * @param num - Number or bigint to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if num is not a number or bigint
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
   encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'number' && typeof num !== 'bigint') {
@@ -95,8 +121,13 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the bigint into a Flip ID with a prefix salt.
+   * Encodes a bigint into a Flip ID.
    * Use this method for numbers larger than Number.MAX_SAFE_INTEGER.
+   * @param num - Bigint to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if num is not a bigint
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
   encodeBigInt(num: bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'bigint') {
@@ -110,7 +141,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the string into a Flip ID with a prefix salt.
+   * Encodes a string into a Flip ID.
+   * @param str - String to encode (UTF-8)
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if str is not a string
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
   encodeString(str: string, prefixSalt: string = ''): string {
     if (typeof str !== 'string') {
@@ -122,7 +158,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the buffer into a Flip ID.
+   * Encodes a buffer into a Flip ID.
+   * @param buffer - Buffer to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws BlockTooLargeError if buffer exceeds blockSize
+   * @throws InvalidArgumentError if prefixSalt is invalid
    */
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
@@ -160,8 +201,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a number.
-   * @throws NumberOverflowError if the decoded value exceeds Number.MAX_SAFE_INTEGER
+   * Decodes a Flip ID and returns the original data as a number.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded number
+   * @throws NumberOverflowError if decoded value exceeds Number.MAX_SAFE_INTEGER
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -186,7 +231,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a number.
+   * Decodes a Flip ID and returns the original data as a bigint.
+   * Use this method for values that may exceed Number.MAX_SAFE_INTEGER.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded bigint
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToBigInt(encoded: string): bigint {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -198,7 +248,11 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a string.
+   * Decodes a Flip ID and returns the original data as a string.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded string (UTF-8)
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToString(encoded: string): string {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -207,8 +261,11 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data.
-   * @throws InvalidEncodedStringError if the input string is empty or contains invalid characters
+   * Decodes a Flip ID and returns the original data as a Buffer.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded buffer
+   * @throws InvalidEncodedStringError if encoded string is empty or contains invalid characters
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToBuffer(encoded: string): Buffer {
     if (encoded.length === 0) {
