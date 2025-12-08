@@ -35,6 +35,21 @@
     "url": "https://github.com/misebox/flipid/issues"
   },
   "description": "Simple and Reversible ID Transformation",
+  "keywords": [
+    "id",
+    "obfuscation",
+    "encode",
+    "decode",
+    "reversible",
+    "transform",
+    "hashid",
+    "shortid",
+    "url-safe",
+    "base32",
+    "base58",
+    "base64",
+    "bufferbase"
+  ],
   "files": [
     "dist"
   ],
