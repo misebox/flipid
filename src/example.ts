@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { BufferTransformer } from './transformer.js';
 import { FlipIDGenerator } from './flipid.js';
 
+
 // Example usage
 export const exampleFlipIDGenerator = () => {
   const key = 'secret';
