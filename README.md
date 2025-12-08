@@ -1,10 +1,10 @@
 # FlipID
 
-FlipID is a simple and reversible ID obfuscation tool. It transforms numeric IDs into unguessable strings and back.
+FlipID is a simple and reversible ID encoder. It transforms numeric IDs into unguessable strings and back.
 
 ## This is NOT Encryption
 
-FlipID is an **obfuscation tool**, not a cryptographic library.
+FlipID is an **ID encoder**, not a cryptographic library.
 
 - Does NOT provide security or confidentiality
 - Uses `Math.sin()` based PRNG (predictable, not cryptographically secure)
