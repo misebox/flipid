@@ -74,7 +74,7 @@ const flipid = new FlipID({
 
 // Encode a number
 const encoded = flipid.encodeNumber(123456);
-console.log(encoded); // "597JZ5AZ"
+console.log(encoded); // "59RQ4YPK"
 
 // Decode back to number
 const decoded = flipid.decodeToNumber(encoded);
@@ -87,20 +87,20 @@ console.log(decoded); // 123456
 const flipid = new FlipID({ key: 'my-app-key', blockSize: 8 });
 
 // Numbers
-flipid.encodeNumber(42);              // "G2M4G7597PCAHP"
-flipid.decodeToNumber('G2M4G7597PCAHP'); // 42
+flipid.encodeNumber(42);              // "X32AHV9WN1PHS3"
+flipid.decodeToNumber('X32AHV9WN1PHS3'); // 42
 
 // BigInt (for large numbers)
-flipid.encodeBigInt(2n ** 64n - 1n);  // "3GEZG70YEHCZVJ"
-flipid.decodeToBigInt('3GEZG70YEHCZVJ'); // 18446744073709551615n
+flipid.encodeBigInt(2n ** 64n - 1n);  // "6HRPREKM3HCRTK"
+flipid.decodeToBigInt('6HRPREKM3HCRTK'); // 18446744073709551615n
 
 // Strings
-flipid.encodeString('hello');         // "196TY1H75RPJ984"
-flipid.decodeToString('196TY1H75RPJ984'); // "hello"
+flipid.encodeString('hello');         // "1Y0WY29E507G5B9"
+flipid.decodeToString('1Y0WY29E507G5B9'); // "hello"
 
 // Buffers
-flipid.encodeBuffer(Buffer.from('data')); // "28B7TDZKBZYZYWE"
-flipid.decodeToBuffer('28B7TDZKBZYZYWE');  // <Buffer 64 61 74 61>
+flipid.encodeBuffer(Buffer.from('data')); // "3RY1HMBZZ7CFNZQ"
+flipid.decodeToBuffer('3RY1HMBZZ7CFNZQ');  // <Buffer 64 61 74 61>
 ```
 
 ### Custom Encoder
@@ -110,27 +110,27 @@ import { FlipID, Codecs } from 'flipid';
 
 // Default: Base32 Crockford (0-9, A-Z excluding I, L, O, U)
 const f1 = new FlipID({ key: 'my-app-key', blockSize: 4 });
-f1.encodeNumber(1); // "10E4RBBN"
-f1.encodeNumber(2); // "1DQKRNGE"
-f1.encodeNumber(3); // "18BKANVZ"
+f1.encodeNumber(1); // "119G0PG1"
+f1.encodeNumber(2); // "1C81468G"
+f1.encodeNumber(3); // "191562GH"
 
 // Base64 URL-safe (shorter output)
 const f2 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base64url });
-f2.encodeNumber(1); // "gcTC11"
-f2.encodeNumber(2); // "tvPFYO"
-f2.encodeNumber(3); // "oXNVd_"
+f2.encodeNumber(1); // "hTAFoB"
+f2.encodeNumber(2); // "sQEhkQ"
+f2.encodeNumber(3); // "pCUwoR"
 
 // Base58 (Bitcoin-style, no confusing chars: 0, O, I, l)
 const f3 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base58 });
-f3.encodeNumber(1); // "v5Ct6G"
-f3.encodeNumber(2); // "2Hpm2J1"
-f3.encodeNumber(3); // "292iw6E"
+f3.encodeNumber(1); // "wUJjP6"
+f3.encodeNumber(2); // "2FPg1ew"
+f3.encodeNumber(3); // "2A8eNmE"
 
 // Hexadecimal
 const f4 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base16 });
-f4.encodeNumber(1); // "81C4C2D75"
-f4.encodeNumber(2); // "B6F3C560E"
-f4.encodeNumber(3); // "A1735577F"
+f4.encodeNumber(1); // "853005A01"
+f4.encodeNumber(2); // "B10121910"
+f4.encodeNumber(3); // "A42530A11"
 ```
 
 ### Error Handling
