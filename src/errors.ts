@@ -54,3 +54,23 @@ export default {
   FlipIDNumberOverflowError,
   FlipIDInvalidEncodedStringError,
 };
+
+// Deprecated aliases for backward compatibility
+
+/** @deprecated Use `FlipIDInvalidDataTypeError` instead */
+export const InvalidDataTypeError = FlipIDInvalidDataTypeError;
+
+/** @deprecated Use `FlipIDBlockTooLargeError` instead */
+export const BlockTooLargeError = FlipIDBlockTooLargeError;
+
+/** @deprecated Use `FlipIDInvalidArgumentError` instead */
+export const InvalidArgumentError = FlipIDInvalidArgumentError;
+
+/** @deprecated Use `FlipIDChecksumError` instead */
+export const CheckSumError = FlipIDChecksumError;
+
+/** @deprecated Use `FlipIDNumberOverflowError` instead */
+export const NumberOverflowError = FlipIDNumberOverflowError;
+
+/** @deprecated Use `FlipIDInvalidEncodedStringError` instead */
+export const InvalidEncodedStringError = FlipIDInvalidEncodedStringError;

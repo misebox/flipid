@@ -12,4 +12,11 @@ export {
   FlipIDChecksumError,
   FlipIDNumberOverflowError,
   FlipIDInvalidEncodedStringError,
+  // Deprecated aliases
+  InvalidDataTypeError,
+  BlockTooLargeError,
+  InvalidArgumentError,
+  CheckSumError,
+  NumberOverflowError,
+  InvalidEncodedStringError,
 } from './errors.js';
