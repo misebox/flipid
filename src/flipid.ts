@@ -50,6 +50,14 @@ export class FlipID {
     usePrefixSalt = false,
     encoder = Codecs.base32crockford,
   }: FlipIDOptions) {
+    if (!key) {
+      throw new errors.FlipIDInvalidArgumentError(`key is required`);
+    }
+    if (blockSize < 0) {
+      throw new errors.FlipIDInvalidArgumentError(
+        `blockSize must be non-negative, got ${blockSize}`
+      );
+    }
     if (headerSize < 1 || headerSize > 4) {
       throw new errors.FlipIDInvalidArgumentError(
         `headerSize must be between 1 and 4, got ${headerSize}`
@@ -118,6 +126,11 @@ export class FlipID {
     if (typeof num !== 'number' && typeof num !== 'bigint') {
       throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
+    if (num < 0) {
+      throw new errors.FlipIDInvalidArgumentError(
+        `Negative numbers are not supported. Use signedToUnsigned() utility.`
+      );
+    }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
     const tmpBuf = Buffer.from(tmp, 'hex');
@@ -137,6 +150,11 @@ export class FlipID {
   encodeBigInt(num: bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'bigint') {
       throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
+    }
+    if (num < 0n) {
+      throw new errors.FlipIDInvalidArgumentError(
+        `Negative numbers are not supported. Use signedToUnsignedBigInt() utility.`
+      );
     }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
@@ -216,16 +234,8 @@ export class FlipID {
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
     let num = 0;
-
-    let data: Buffer;
-    if (this.blockSize > 0) {
-      data = Buffer.alloc(this.blockSize);
-      decryptedBlock.copy(data, this.blockSize - decryptedBlock.length);
-    } else {
-      data = decryptedBlock;
-    }
-    for (let i = 0; i < data.length; i++) {
-      num = num * 256 + data[i];
+    for (let i = 0; i < decryptedBlock.length; i++) {
+      num = num * 256 + decryptedBlock[i];
       if (num > Number.MAX_SAFE_INTEGER) {
         throw new errors.FlipIDNumberOverflowError(
           `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`
