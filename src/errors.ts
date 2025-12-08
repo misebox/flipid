@@ -30,9 +30,27 @@ export class CheckSumError extends Error {
   }
 }
 
+// Error for when number exceeds safe integer range
+export class NumberOverflowError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NumberOverflowError';
+  }
+}
+
+// Error for when input string is invalid for decoding
+export class InvalidEncodedStringError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidEncodedStringError';
+  }
+}
+
 export default {
   InvalidDataTypeError,
   BlockTooLargeError,
   InvalidArgumentError,
   CheckSumError,
+  NumberOverflowError,
+  InvalidEncodedStringError,
 };

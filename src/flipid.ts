@@ -95,6 +95,21 @@ export class FlipIDGenerator {
   }
 
   /**
+   * Encodes the bigint into a Flip ID with a prefix salt.
+   * Use this method for numbers larger than Number.MAX_SAFE_INTEGER.
+   */
+  encodeBigInt(num: bigint, prefixSalt: string = ''): string {
+    if (typeof num !== 'bigint') {
+      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+    }
+    let tmp = num.toString(16);
+    tmp = tmp.length % 2 ? '0' + tmp : tmp;
+    const tmpBuf = Buffer.from(tmp, 'hex');
+    const block = this.padBuffer(tmpBuf);
+    return this.encodeBuffer(block, prefixSalt);
+  }
+
+  /**
    * Encodes the string into a Flip ID with a prefix salt.
    */
   encodeString(str: string, prefixSalt: string = ''): string {
@@ -146,6 +161,7 @@ export class FlipIDGenerator {
 
   /**
    * Decodes the encrypted string and returns the original data as a number.
+   * @throws NumberOverflowError if the decoded value exceeds Number.MAX_SAFE_INTEGER
    */
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -160,6 +176,11 @@ export class FlipIDGenerator {
     }
     for (let i = 0; i < data.length; i++) {
       num = num * 256 + data[i];
+      if (num > Number.MAX_SAFE_INTEGER) {
+        throw new errors.NumberOverflowError(
+          `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`
+        );
+      }
     }
     return num;
   }
@@ -187,15 +208,23 @@ export class FlipIDGenerator {
 
   /**
    * Decodes the encrypted string and returns the original data.
+   * @throws InvalidEncodedStringError if the input string is empty or contains invalid characters
    */
   decodeToBuffer(encoded: string): Buffer {
+    if (encoded.length === 0) {
+      throw new errors.InvalidEncodedStringError('Encoded string cannot be empty');
+    }
+
     let saltSize = 0;
-    let saltBuffer = Buffer.alloc(0);
     if (this.usePrefixSalt) {
-      saltBuffer = Buffer.from(encoded[0]);
       saltSize = 1;
       encoded = encoded.slice(1);
     }
+
+    if (!this.encoder.validate(encoded)) {
+      throw new errors.InvalidEncodedStringError('Encoded string contains invalid characters');
+    }
+
     const checkSumSize = this.checkSum ? 1 : 0;
     const expectedSize =
       this.blockSize > 0

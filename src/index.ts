@@ -4,4 +4,6 @@ export {
   BlockTooLargeError,
   InvalidArgumentError,
   CheckSumError,
+  NumberOverflowError,
+  InvalidEncodedStringError,
 } from './errors.js';
