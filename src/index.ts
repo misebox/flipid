@@ -1,9 +1,9 @@
 export { FlipIDGenerator, type FlipIDGeneratorOptions } from './flipid.js';
 export {
-  InvalidDataTypeError,
-  BlockTooLargeError,
-  InvalidArgumentError,
-  CheckSumError,
-  NumberOverflowError,
-  InvalidEncodedStringError,
+  FlipIDInvalidDataTypeError,
+  FlipIDBlockTooLargeError,
+  FlipIDInvalidArgumentError,
+  FlipIDChecksumError,
+  FlipIDNumberOverflowError,
+  FlipIDInvalidEncodedStringError,
 } from './errors.js';

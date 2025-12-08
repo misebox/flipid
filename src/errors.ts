@@ -1,56 +1,56 @@
 // Error for when the data is not a number, a bigint or a buffer
-export class InvalidDataTypeError extends Error {
+export class FlipIDInvalidDataTypeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'InvalidDataTypeError';
+    this.name = 'FlipIDInvalidDataTypeError';
   }
 }
 
 // Error for when the block is larger than byteSize
-export class BlockTooLargeError extends Error {
+export class FlipIDBlockTooLargeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'BlockTooLargeError';
+    this.name = 'FlipIDBlockTooLargeError';
   }
 }
 
 // Error for when arguments are invalid
-export class InvalidArgumentError extends Error {
+export class FlipIDInvalidArgumentError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'InvalidArgumentError';
+    this.name = 'FlipIDInvalidArgumentError';
   }
 }
 
 // Error for when the checksum is invalid
-export class CheckSumError extends Error {
+export class FlipIDChecksumError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'CheckSumError';
+    this.name = 'FlipIDChecksumError';
   }
 }
 
 // Error for when number exceeds safe integer range
-export class NumberOverflowError extends Error {
+export class FlipIDNumberOverflowError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'NumberOverflowError';
+    this.name = 'FlipIDNumberOverflowError';
   }
 }
 
 // Error for when input string is invalid for decoding
-export class InvalidEncodedStringError extends Error {
+export class FlipIDInvalidEncodedStringError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'InvalidEncodedStringError';
+    this.name = 'FlipIDInvalidEncodedStringError';
   }
 }
 
 export default {
-  InvalidDataTypeError,
-  BlockTooLargeError,
-  InvalidArgumentError,
-  CheckSumError,
-  NumberOverflowError,
-  InvalidEncodedStringError,
+  FlipIDInvalidDataTypeError,
+  FlipIDBlockTooLargeError,
+  FlipIDInvalidArgumentError,
+  FlipIDChecksumError,
+  FlipIDNumberOverflowError,
+  FlipIDInvalidEncodedStringError,
 };

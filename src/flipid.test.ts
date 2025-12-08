@@ -129,7 +129,7 @@ describe('FlipIDGenerator', () => {
       const checksumBroken = encoded.slice(0, encoded.length - 1) + '0';
 
       expect(() => g1.decodeToBuffer(checksumBroken)).toThrowError(
-        errors.CheckSumError
+        errors.FlipIDChecksumError
       );
     });
   });
@@ -159,7 +159,7 @@ describe('FlipIDGenerator', () => {
       it('should throw InvalidDataTypeError for non-bigint input', () => {
         const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
         expect(() => g.encodeBigInt(123 as unknown as bigint)).toThrowError(
-          errors.InvalidDataTypeError
+          errors.FlipIDInvalidDataTypeError
         );
       });
     });
@@ -170,7 +170,7 @@ describe('FlipIDGenerator', () => {
         const bigValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
         const encoded = g.encodeBigInt(bigValue);
         expect(() => g.decodeToNumber(encoded)).toThrowError(
-          errors.NumberOverflowError
+          errors.FlipIDNumberOverflowError
         );
       });
 
@@ -187,14 +187,14 @@ describe('FlipIDGenerator', () => {
       it('should throw InvalidEncodedStringError for empty string', () => {
         const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
         expect(() => g.decodeToBuffer('')).toThrowError(
-          errors.InvalidEncodedStringError
+          errors.FlipIDInvalidEncodedStringError
         );
       });
 
       it('should throw InvalidEncodedStringError for invalid characters', () => {
         const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
         expect(() => g.decodeToBuffer('!!!invalid!!!')).toThrowError(
-          errors.InvalidEncodedStringError
+          errors.FlipIDInvalidEncodedStringError
         );
       });
     });
@@ -203,14 +203,14 @@ describe('FlipIDGenerator', () => {
       it('should throw when buffer exceeds blockSize', () => {
         const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
         expect(() => g.encodeBuffer(Buffer.from('hello'))).toThrowError(
-          errors.BlockTooLargeError
+          errors.FlipIDBlockTooLargeError
         );
       });
 
       it('should throw when string exceeds blockSize', () => {
         const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
         expect(() => g.encodeString('hello')).toThrowError(
-          errors.BlockTooLargeError
+          errors.FlipIDBlockTooLargeError
         );
       });
     });
@@ -234,7 +234,7 @@ describe('FlipIDGenerator', () => {
           usePrefixSalt: true,
         });
         expect(() => g.encodeBuffer(Buffer.from('hello'))).toThrowError(
-          errors.InvalidArgumentError
+          errors.FlipIDInvalidArgumentError
         );
       });
 
@@ -245,7 +245,7 @@ describe('FlipIDGenerator', () => {
           usePrefixSalt: false,
         });
         expect(() => g.encodeBuffer(Buffer.from('hello'), 'A')).toThrowError(
-          errors.InvalidArgumentError
+          errors.FlipIDInvalidArgumentError
         );
       });
     });

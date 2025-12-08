@@ -72,29 +72,29 @@ g.encode(Buffer.from('x')); // buffer
 ```typescript
 import {
   FlipIDGenerator,
-  NumberOverflowError,
-  InvalidEncodedStringError,
-  BlockTooLargeError,
-  CheckSumError,
+  FlipIDNumberOverflowError,
+  FlipIDInvalidEncodedStringError,
+  FlipIDBlockTooLargeError,
+  FlipIDChecksumError,
 } from 'flipid';
 
 const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
 
 try {
-  // Throws NumberOverflowError if value exceeds Number.MAX_SAFE_INTEGER
+  // Throws FlipIDNumberOverflowError if value exceeds Number.MAX_SAFE_INTEGER
   g.decodeToNumber(encodedLargeValue);
 } catch (e) {
-  if (e instanceof NumberOverflowError) {
+  if (e instanceof FlipIDNumberOverflowError) {
     // Use decodeToBigInt() instead
     const value = g.decodeToBigInt(encodedLargeValue);
   }
 }
 
 try {
-  // Throws InvalidEncodedStringError for invalid input
+  // Throws FlipIDInvalidEncodedStringError for invalid input
   g.decodeToBuffer('!!!invalid!!!');
 } catch (e) {
-  if (e instanceof InvalidEncodedStringError) {
+  if (e instanceof FlipIDInvalidEncodedStringError) {
     console.error('Invalid encoded string');
   }
 }
@@ -134,12 +134,12 @@ try {
 
 | Error | Description |
 |-------|-------------|
-| `InvalidDataTypeError` | Invalid input data type |
-| `BlockTooLargeError` | Input exceeds configured blockSize |
-| `InvalidArgumentError` | Invalid argument combination |
-| `CheckSumError` | Checksum mismatch on decode |
-| `NumberOverflowError` | Decoded value exceeds Number.MAX_SAFE_INTEGER |
-| `InvalidEncodedStringError` | Invalid encoded string format |
+| `FlipIDInvalidDataTypeError` | Invalid input data type |
+| `FlipIDBlockTooLargeError` | Input exceeds configured blockSize |
+| `FlipIDInvalidArgumentError` | Invalid argument combination |
+| `FlipIDChecksumError` | Checksum mismatch on decode |
+| `FlipIDNumberOverflowError` | Decoded value exceeds Number.MAX_SAFE_INTEGER |
+| `FlipIDInvalidEncodedStringError` | Invalid encoded string format |
 
 ## License
 

@@ -69,7 +69,7 @@ export class FlipIDGenerator {
       return buffer;
     }
     if (buffer.length > this.blockSize) {
-      throw new errors.BlockTooLargeError(
+      throw new errors.FlipIDBlockTooLargeError(
         `buffer size (${buffer.length}) > block size (${this.blockSize})`
       );
     }
@@ -97,7 +97,7 @@ export class FlipIDGenerator {
     } else if (typeof data === 'number' || typeof data === 'bigint') {
       return this.encodeNumber(data, prefixSalt);
     } else {
-      throw new errors.InvalidDataTypeError('Invalid data type');
+      throw new errors.FlipIDInvalidDataTypeError('Invalid data type');
     }
   }
 
@@ -111,7 +111,7 @@ export class FlipIDGenerator {
    */
   encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'number' && typeof num !== 'bigint') {
-      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
@@ -131,7 +131,7 @@ export class FlipIDGenerator {
    */
   encodeBigInt(num: bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'bigint') {
-      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
@@ -150,7 +150,7 @@ export class FlipIDGenerator {
    */
   encodeString(str: string, prefixSalt: string = ''): string {
     if (typeof str !== 'string') {
-      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
+      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
     const tmpBuf = Buffer.from(str, 'utf8');
     const block = this.padBuffer(tmpBuf);
@@ -168,11 +168,11 @@ export class FlipIDGenerator {
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
     if (this.usePrefixSalt && prefixSalt.length !== 1) {
-      throw new errors.InvalidArgumentError(
+      throw new errors.FlipIDInvalidArgumentError(
         `usePrefixSalt is true but prefixSalt is not a single character`
       );
     } else if (!this.usePrefixSalt && prefixSalt !== '') {
-      throw new errors.InvalidArgumentError(
+      throw new errors.FlipIDInvalidArgumentError(
         `usePrefixSalt is false but prefixSalt is not empty`
       );
     }
@@ -222,7 +222,7 @@ export class FlipIDGenerator {
     for (let i = 0; i < data.length; i++) {
       num = num * 256 + data[i];
       if (num > Number.MAX_SAFE_INTEGER) {
-        throw new errors.NumberOverflowError(
+        throw new errors.FlipIDNumberOverflowError(
           `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`
         );
       }
@@ -269,7 +269,7 @@ export class FlipIDGenerator {
    */
   decodeToBuffer(encoded: string): Buffer {
     if (encoded.length === 0) {
-      throw new errors.InvalidEncodedStringError('Encoded string cannot be empty');
+      throw new errors.FlipIDInvalidEncodedStringError('Encoded string cannot be empty');
     }
 
     let saltSize = 0;
@@ -279,7 +279,7 @@ export class FlipIDGenerator {
     }
 
     if (!this.encoder.validate(encoded)) {
-      throw new errors.InvalidEncodedStringError('Encoded string contains invalid characters');
+      throw new errors.FlipIDInvalidEncodedStringError('Encoded string contains invalid characters');
     }
 
     const checkSumSize = this.checkSum ? 1 : 0;
@@ -297,7 +297,7 @@ export class FlipIDGenerator {
       const checkSum =
         decodedBuf.subarray(0, -1).reduce((prev, curr) => prev + curr, 0) % 256;
       if (checkSum !== checkSumByte) {
-        throw new errors.CheckSumError('Checksum mismatch');
+        throw new errors.FlipIDChecksumError('Checksum mismatch');
       }
     }
     const encryptedBuf = decodedBuf.subarray(0, this.checkSum ? -1 : undefined);
