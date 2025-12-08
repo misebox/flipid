@@ -1,19 +1,36 @@
 import { Buffer } from 'node:buffer';
 import { BufferTransformer } from './transformer.js';
-import { BufferEncoder, Chars } from 'bufferbase';
+import { Codec, Codecs, type ICodec } from 'bufferbase';
 import errors from './errors.js';
 
-type FlipIDGeneratorOptions = {
+/**
+ * Options for FlipIDGenerator constructor.
+ */
+export type FlipIDGeneratorOptions = {
+  /** Secret key for encryption/decryption */
   key: string;
+  /** Fixed block size in bytes. 0 = variable length (default: 0) */
   blockSize?: number;
+  /** Header size for checksum calculation in bytes (default: 1) */
   headerSize?: number;
+  /** Enable checksum validation on decode (default: false) */
   checkSum?: boolean;
+  /** Add single-char prefix salt to output (default: false) */
   usePrefixSalt?: boolean;
-  encoder?: BufferEncoder;
+  /** Custom encoder from bufferbase (default: Base32Crockford) */
+  encoder?: ICodec;
 };
 
 /**
- * Generates Flip IDs.
+ * Reversible ID transformation generator.
+ * Encodes numbers, strings, and buffers into obfuscated string identifiers.
+ *
+ * @example
+ * ```typescript
+ * const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+ * const encoded = g.encodeNumber(123456);
+ * const decoded = g.decodeToNumber(encoded); // 123456
+ * ```
  */
 export class FlipIDGenerator {
   transformer: BufferTransformer;
@@ -23,7 +40,7 @@ export class FlipIDGenerator {
   headerSize: number;
   checkSum: boolean;
   usePrefixSalt: boolean;
-  encoder: BufferEncoder;
+  encoder: ICodec;
 
   constructor({
     key,
@@ -31,7 +48,7 @@ export class FlipIDGenerator {
     headerSize = 1,
     checkSum = false,
     usePrefixSalt = false,
-    encoder = new BufferEncoder(Chars.Base32Crockford),
+    encoder = Codecs.base32crockford,
   }: FlipIDGeneratorOptions) {
     this.key = key;
     this.blockSize = blockSize;
@@ -43,7 +60,30 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the data into a Flip ID.
+   * Pads buffer to blockSize with leading zeros (right-aligned).
+   * If blockSize is 0, returns the original buffer.
+   * @throws BlockTooLargeError if buffer exceeds blockSize
+   */
+  private padBuffer(buffer: Buffer): Buffer {
+    if (this.blockSize === 0) {
+      return buffer;
+    }
+    if (buffer.length > this.blockSize) {
+      throw new errors.BlockTooLargeError(
+        `buffer size (${buffer.length}) > block size (${this.blockSize})`
+      );
+    }
+    const block = Buffer.alloc(this.blockSize);
+    buffer.copy(block, this.blockSize - buffer.length);
+    return block;
+  }
+
+  /**
+   * Encodes data into a Flip ID (polymorphic).
+   * @param data - Data to encode (number, bigint, string, or Buffer)
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if data type is not supported
    */
   encode(
     data: number | bigint | string | Buffer,
@@ -62,7 +102,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Encodes the number into a Flip ID with a prefix salt.
+   * Encodes a number into a Flip ID.
+   * @param num - Number or bigint to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if num is not a number or bigint
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
   encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
     if (typeof num !== 'number' && typeof num !== 'bigint') {
@@ -71,42 +116,54 @@ export class FlipIDGenerator {
     let tmp = num.toString(16);
     tmp = tmp.length % 2 ? '0' + tmp : tmp;
     const tmpBuf = Buffer.from(tmp, 'hex');
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      tmpBuf.copy(block, this.blockSize - tmpBuf.length);
-    } else {
-      block = tmpBuf;
-    }
+    const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
   /**
-   * Encodes the string into a Flip ID with a prefix salt.
+   * Encodes a bigint into a Flip ID.
+   * Use this method for numbers larger than Number.MAX_SAFE_INTEGER.
+   * @param num - Bigint to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if num is not a bigint
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
+   */
+  encodeBigInt(num: bigint, prefixSalt: string = ''): string {
+    if (typeof num !== 'bigint') {
+      throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof num}`);
+    }
+    let tmp = num.toString(16);
+    tmp = tmp.length % 2 ? '0' + tmp : tmp;
+    const tmpBuf = Buffer.from(tmp, 'hex');
+    const block = this.padBuffer(tmpBuf);
+    return this.encodeBuffer(block, prefixSalt);
+  }
+
+  /**
+   * Encodes a string into a Flip ID.
+   * @param str - String to encode (UTF-8)
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws InvalidDataTypeError if str is not a string
+   * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
   encodeString(str: string, prefixSalt: string = ''): string {
     if (typeof str !== 'string') {
       throw new errors.InvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
     const tmpBuf = Buffer.from(str, 'utf8');
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      if (tmpBuf.length > this.blockSize) {
-        throw new errors.BlockTooLargeError(
-          `buffer size (${tmpBuf.length}) > block size (${this.blockSize})`
-        );
-      }
-      // align right
-      tmpBuf.copy(block, block.length - tmpBuf.length);
-    } else {
-      block = tmpBuf;
-    }
+    const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
 
   /**
-   * Encodes the buffer into a Flip ID.
+   * Encodes a buffer into a Flip ID.
+   * @param buffer - Buffer to encode
+   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
+   * @returns Encoded string
+   * @throws BlockTooLargeError if buffer exceeds blockSize
+   * @throws InvalidArgumentError if prefixSalt is invalid
    */
   encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
     const salt = this.usePrefixSalt ? prefixSalt : '';
@@ -119,19 +176,7 @@ export class FlipIDGenerator {
         `usePrefixSalt is false but prefixSalt is not empty`
       );
     }
-    if (this.blockSize > 0 && buffer.length > this.blockSize) {
-      throw new errors.BlockTooLargeError(
-        `buffer size (${buffer.length}) > block size (${this.blockSize})`
-      );
-    }
-    // Pad the buffer with zeros
-    let block: Buffer;
-    if (this.blockSize > 0) {
-      block = Buffer.alloc(this.blockSize);
-      buffer.copy(block, this.blockSize - buffer.length);
-    } else {
-      block = buffer;
-    }
+    const block = this.padBuffer(buffer);
     const sumVal = block.reduce(
       (prev, curr) => (prev + curr) % 256 ** this.headerSize,
       0
@@ -156,7 +201,12 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a number.
+   * Decodes a Flip ID and returns the original data as a number.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded number
+   * @throws NumberOverflowError if decoded value exceeds Number.MAX_SAFE_INTEGER
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToNumber(encoded: string): number {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -171,12 +221,22 @@ export class FlipIDGenerator {
     }
     for (let i = 0; i < data.length; i++) {
       num = num * 256 + data[i];
+      if (num > Number.MAX_SAFE_INTEGER) {
+        throw new errors.NumberOverflowError(
+          `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`
+        );
+      }
     }
     return num;
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a number.
+   * Decodes a Flip ID and returns the original data as a bigint.
+   * Use this method for values that may exceed Number.MAX_SAFE_INTEGER.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded bigint
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToBigInt(encoded: string): bigint {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -188,7 +248,11 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data as a string.
+   * Decodes a Flip ID and returns the original data as a string.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded string (UTF-8)
+   * @throws InvalidEncodedStringError if encoded string is invalid
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToString(encoded: string): string {
     const decryptedBlock = this.decodeToBuffer(encoded);
@@ -197,22 +261,35 @@ export class FlipIDGenerator {
   }
 
   /**
-   * Decodes the encrypted string and returns the original data.
+   * Decodes a Flip ID and returns the original data as a Buffer.
+   * @param encoded - Encoded string to decode
+   * @returns Decoded buffer
+   * @throws InvalidEncodedStringError if encoded string is empty or contains invalid characters
+   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
    */
   decodeToBuffer(encoded: string): Buffer {
+    if (encoded.length === 0) {
+      throw new errors.InvalidEncodedStringError('Encoded string cannot be empty');
+    }
+
     let saltSize = 0;
-    let saltBuffer = Buffer.alloc(0);
     if (this.usePrefixSalt) {
-      saltBuffer = Buffer.from(encoded[0]);
       saltSize = 1;
       encoded = encoded.slice(1);
     }
+
+    if (!this.encoder.validate(encoded)) {
+      throw new errors.InvalidEncodedStringError('Encoded string contains invalid characters');
+    }
+
     const checkSumSize = this.checkSum ? 1 : 0;
-    const decodedBuf = this.encoder.decode(
-      encoded,
+    const expectedSize =
       this.blockSize > 0
         ? saltSize + this.headerSize + this.blockSize + checkSumSize
-        : undefined
+        : undefined;
+    const decodedBuf = this.encoder.decode(
+      encoded,
+      expectedSize !== undefined ? { size: expectedSize } : undefined
     );
 
     if (this.checkSum) {

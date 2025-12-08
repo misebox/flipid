@@ -1,6 +1,6 @@
 import errors from './errors';
 import { FlipIDGenerator } from './flipid.js';
-import { describe, it, expect, bench } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('FlipIDGenerator', () => {
   describe('encode', () => {
@@ -143,6 +143,121 @@ describe('FlipIDGenerator', () => {
       expect(g['headerSize']).toEqual(1);
       expect(g['checkSum']).toEqual(false);
       expect(res).not.toEqual(data);
+    });
+  });
+
+  describe('edge cases', () => {
+    describe('encodeBigInt', () => {
+      it('should encode and decode bigint values correctly', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 16 });
+        const bigValue = 2n ** 64n - 1n;
+        const encoded = g.encodeBigInt(bigValue);
+        const decoded = g.decodeToBigInt(encoded);
+        expect(decoded).toEqual(bigValue);
+      });
+
+      it('should throw InvalidDataTypeError for non-bigint input', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        expect(() => g.encodeBigInt(123 as unknown as bigint)).toThrowError(
+          errors.InvalidDataTypeError
+        );
+      });
+    });
+
+    describe('decodeToNumber overflow', () => {
+      it('should throw NumberOverflowError for values exceeding MAX_SAFE_INTEGER', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        const bigValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
+        const encoded = g.encodeBigInt(bigValue);
+        expect(() => g.decodeToNumber(encoded)).toThrowError(
+          errors.NumberOverflowError
+        );
+      });
+
+      it('should not throw for values within safe integer range', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 8 });
+        const safeValue = Number.MAX_SAFE_INTEGER;
+        const encoded = g.encodeNumber(safeValue);
+        const decoded = g.decodeToNumber(encoded);
+        expect(decoded).toEqual(safeValue);
+      });
+    });
+
+    describe('input validation', () => {
+      it('should throw InvalidEncodedStringError for empty string', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+        expect(() => g.decodeToBuffer('')).toThrowError(
+          errors.InvalidEncodedStringError
+        );
+      });
+
+      it('should throw InvalidEncodedStringError for invalid characters', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+        expect(() => g.decodeToBuffer('!!!invalid!!!')).toThrowError(
+          errors.InvalidEncodedStringError
+        );
+      });
+    });
+
+    describe('BlockTooLargeError', () => {
+      it('should throw when buffer exceeds blockSize', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
+        expect(() => g.encodeBuffer(Buffer.from('hello'))).toThrowError(
+          errors.BlockTooLargeError
+        );
+      });
+
+      it('should throw when string exceeds blockSize', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 3 });
+        expect(() => g.encodeString('hello')).toThrowError(
+          errors.BlockTooLargeError
+        );
+      });
+    });
+
+    describe('prefixSalt edge cases', () => {
+      it('should work correctly with usePrefixSalt enabled', () => {
+        const g = new FlipIDGenerator({
+          key: 'secret',
+          blockSize: 5,
+          usePrefixSalt: true,
+        });
+        const encoded = g.encodeBuffer(Buffer.from('hello'), 'A');
+        const decoded = g.decodeToBuffer(encoded);
+        expect(decoded).toEqual(Buffer.from('hello'));
+      });
+
+      it('should throw InvalidArgumentError when usePrefixSalt is true but no salt provided', () => {
+        const g = new FlipIDGenerator({
+          key: 'secret',
+          blockSize: 5,
+          usePrefixSalt: true,
+        });
+        expect(() => g.encodeBuffer(Buffer.from('hello'))).toThrowError(
+          errors.InvalidArgumentError
+        );
+      });
+
+      it('should throw InvalidArgumentError when usePrefixSalt is false but salt provided', () => {
+        const g = new FlipIDGenerator({
+          key: 'secret',
+          blockSize: 5,
+          usePrefixSalt: false,
+        });
+        expect(() => g.encodeBuffer(Buffer.from('hello'), 'A')).toThrowError(
+          errors.InvalidArgumentError
+        );
+      });
+    });
+
+    describe('blockSize=0 (variable length)', () => {
+      it('should handle variable length encoding', () => {
+        const g = new FlipIDGenerator({ key: 'secret', blockSize: 0 });
+        const data = Buffer.from('variable length data');
+        const encoded = g.encode(data);
+        const decoded = g.decodeToBuffer(encoded);
+        expect(decoded).toEqual(data);
+      });
     });
   });
 });
