@@ -1,14 +1,12 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { exampleFlipIDGenerator, exampleSimpleCipher } from './example';
 
 describe('example', () => {
   it('exampleFlipIDGenerator does not throw error', () => {
-    exampleFlipIDGenerator();
-    expect(true).toBe(true);
+    expect(() => exampleFlipIDGenerator()).not.toThrow();
   });
 
   it('exampleSimpleCipher does not throw error', () => {
-    exampleSimpleCipher();
-    expect(true).toBe(true);
+    expect(() => exampleSimpleCipher()).not.toThrow();
   });
 });

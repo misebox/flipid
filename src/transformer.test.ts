@@ -51,22 +51,8 @@ test('xorBuffer works correctly if long key is used', () => {
   expect(restored).toEqual(original);
 });
 
-describe('encrypt', () => {
-  test('should return the result that can be decrypt to same buffer', () => {
-    const original = Buffer.from('hello');
-    const key = Buffer.from('secret');
-    const iv = Buffer.from('xyz');
-    const transformer = new BufferTransformer(key);
-    const encrypted = transformer.encrypt(original, iv);
-    const decrypted = transformer.decrypt(encrypted, iv);
-
-    expect(encrypted).not.toEqual(original);
-    expect(original).toEqual(decrypted);
-  });
-});
-
 describe('BufferTransformer', () => {
-  test('encrypt should return the result that can be decrypt to same buffer', () => {
+  test('encrypt should return the result that can be decrypted to same buffer', () => {
     const original = Buffer.from('hello');
     const key = Buffer.from('secret');
     const iv = Buffer.from('xyz');
