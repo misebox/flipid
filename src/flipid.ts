@@ -33,14 +33,13 @@ export type FlipIDOptions = {
  * ```
  */
 export class FlipID {
-  transformer: BufferTransformer;
-  // options
-  key: string;
-  blockSize: number;
-  headerSize: number;
-  checkSum: boolean;
-  usePrefixSalt: boolean;
-  encoder: ICodec;
+  readonly transformer: BufferTransformer;
+  readonly key: string;
+  readonly blockSize: number;
+  readonly headerSize: number;
+  readonly checkSum: boolean;
+  readonly usePrefixSalt: boolean;
+  readonly encoder: ICodec;
 
   constructor({
     key,
