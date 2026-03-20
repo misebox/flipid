@@ -88,10 +88,8 @@ export const shuffle = (block: Buffer, seed: Buffer) => {
 export const unshuffle = (block: Buffer, seed: Buffer) => {
   const result = Buffer.from(block);
   const shuffleTable = generateShuffleTable(block.length, seed);
-  shuffleTable.reverse();
-  for (const pairs of shuffleTable) {
-    pairs.reverse();
-    for (const [i, j] of pairs) {
+  for (const pairs of [...shuffleTable].reverse()) {
+    for (const [i, j] of [...pairs].reverse()) {
       [result[i], result[j]] = [result[j], result[i]];
     }
   }
