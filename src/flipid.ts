@@ -1,7 +1,7 @@
-import { Buffer } from 'node:buffer';
-import { BufferTransformer, foldKey } from './transformer.js';
-import { Codec, Codecs, type ICodec } from 'bufferbase';
-import errors from './errors.js';
+import { Buffer } from "node:buffer";
+import { BufferTransformer, foldKey } from "./transformer.js";
+import { Codecs, type ICodec } from "bufferbase";
+import errors from "./errors.js";
 
 /**
  * Options for FlipID constructor.
@@ -54,12 +54,12 @@ export class FlipID {
     }
     if (blockSize < 0) {
       throw new errors.FlipIDInvalidArgumentError(
-        `blockSize must be non-negative, got ${blockSize}`
+        `blockSize must be non-negative, got ${blockSize}`,
       );
     }
     if (headerSize < 1 || headerSize > 4) {
       throw new errors.FlipIDInvalidArgumentError(
-        `headerSize must be between 1 and 4, got ${headerSize}`
+        `headerSize must be between 1 and 4, got ${headerSize}`,
       );
     }
     this.key = key;
@@ -91,7 +91,7 @@ export class FlipID {
     }
     if (buffer.length > this.blockSize) {
       throw new errors.FlipIDBlockTooLargeError(
-        `buffer size (${buffer.length}) > block size (${this.blockSize})`
+        `buffer size (${buffer.length}) > block size (${this.blockSize})`,
       );
     }
     const block = Buffer.alloc(this.blockSize);
@@ -106,19 +106,16 @@ export class FlipID {
    * @returns Encoded string
    * @throws InvalidDataTypeError if data type is not supported
    */
-  encode(
-    data: number | bigint | string | Buffer,
-    prefixSalt: string = ''
-  ): string {
+  encode(data: number | bigint | string | Buffer, prefixSalt: string = ""): string {
     // Convert data to buffer
     if (data instanceof Buffer) {
       return this.encodeBuffer(data, prefixSalt);
-    } else if (typeof data === 'string') {
+    } else if (typeof data === "string") {
       return this.encodeString(data, prefixSalt);
-    } else if (typeof data === 'number' || typeof data === 'bigint') {
+    } else if (typeof data === "number" || typeof data === "bigint") {
       return this.encodeNumber(data, prefixSalt);
     } else {
-      throw new errors.FlipIDInvalidDataTypeError('Invalid data type');
+      throw new errors.FlipIDInvalidDataTypeError("Invalid data type");
     }
   }
 
@@ -130,18 +127,18 @@ export class FlipID {
    * @throws InvalidDataTypeError if num is not a number or bigint
    * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
-  encodeNumber(num: number | bigint, prefixSalt: string = ''): string {
-    if (typeof num !== 'number' && typeof num !== 'bigint') {
+  encodeNumber(num: number | bigint, prefixSalt: string = ""): string {
+    if (typeof num !== "number" && typeof num !== "bigint") {
       throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
     if (num < 0) {
       throw new errors.FlipIDInvalidArgumentError(
-        `Negative numbers are not supported. Use signedToUnsigned() utility.`
+        `Negative numbers are not supported. Use signedToUnsigned() utility.`,
       );
     }
     let tmp = num.toString(16);
-    tmp = tmp.length % 2 ? '0' + tmp : tmp;
-    const tmpBuf = Buffer.from(tmp, 'hex');
+    tmp = tmp.length % 2 ? "0" + tmp : tmp;
+    const tmpBuf = Buffer.from(tmp, "hex");
     const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
@@ -155,18 +152,18 @@ export class FlipID {
    * @throws InvalidDataTypeError if num is not a bigint
    * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
-  encodeBigInt(num: bigint, prefixSalt: string = ''): string {
-    if (typeof num !== 'bigint') {
+  encodeBigInt(num: bigint, prefixSalt: string = ""): string {
+    if (typeof num !== "bigint") {
       throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
     }
     if (num < 0n) {
       throw new errors.FlipIDInvalidArgumentError(
-        `Negative numbers are not supported. Use signedToUnsignedBigInt() utility.`
+        `Negative numbers are not supported. Use signedToUnsignedBigInt() utility.`,
       );
     }
     let tmp = num.toString(16);
-    tmp = tmp.length % 2 ? '0' + tmp : tmp;
-    const tmpBuf = Buffer.from(tmp, 'hex');
+    tmp = tmp.length % 2 ? "0" + tmp : tmp;
+    const tmpBuf = Buffer.from(tmp, "hex");
     const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
@@ -179,11 +176,11 @@ export class FlipID {
    * @throws InvalidDataTypeError if str is not a string
    * @throws BlockTooLargeError if encoded value exceeds blockSize
    */
-  encodeString(str: string, prefixSalt: string = ''): string {
-    if (typeof str !== 'string') {
+  encodeString(str: string, prefixSalt: string = ""): string {
+    if (typeof str !== "string") {
       throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof str}`);
     }
-    const tmpBuf = Buffer.from(str, 'utf8');
+    const tmpBuf = Buffer.from(str, "utf8");
     const block = this.padBuffer(tmpBuf);
     return this.encodeBuffer(block, prefixSalt);
   }
@@ -196,38 +193,36 @@ export class FlipID {
    * @throws BlockTooLargeError if buffer exceeds blockSize
    * @throws InvalidArgumentError if prefixSalt is invalid
    */
-  encodeBuffer(buffer: Buffer, prefixSalt: string = ''): string {
-    const salt = this.usePrefixSalt ? prefixSalt : '';
+  encodeBuffer(buffer: Buffer, prefixSalt: string = ""): string {
+    const salt = this.usePrefixSalt ? prefixSalt : "";
     if (this.usePrefixSalt && prefixSalt.length !== 1) {
       throw new errors.FlipIDInvalidArgumentError(
-        `usePrefixSalt is true but prefixSalt is not a single character`
+        `usePrefixSalt is true but prefixSalt is not a single character`,
       );
-    } else if (!this.usePrefixSalt && prefixSalt !== '') {
+    } else if (!this.usePrefixSalt && prefixSalt !== "") {
       throw new errors.FlipIDInvalidArgumentError(
-        `usePrefixSalt is false but prefixSalt is not empty`
+        `usePrefixSalt is false but prefixSalt is not empty`,
       );
     }
     const block = this.padBuffer(buffer);
-    const sumVal = block.reduce(
-      (prev, curr) => (prev + curr) % 256 ** this.headerSize,
-      0
+    const sumVal = block.reduce((prev, curr) => {
+      return (prev + curr) % 256 ** this.headerSize;
+    }, 0);
+    const newSeedHex = ("00".repeat(this.headerSize) + sumVal.toString(16)).slice(
+      -this.headerSize * 2,
     );
-    const newSeedHex = (
-      '00'.repeat(this.headerSize) + sumVal.toString(16)
-    ).slice(-this.headerSize * 2);
-    const iv = Buffer.concat([
-      Buffer.from(salt),
-      Buffer.from(newSeedHex, 'hex'),
-    ]);
+    const iv = Buffer.concat([Buffer.from(salt), Buffer.from(newSeedHex, "hex")]);
     const encrypted = this.transformer.encrypt(
-      Buffer.concat([this.transformer.encrypt(block, iv), iv])
+      Buffer.concat([this.transformer.encrypt(block, iv), iv]),
     );
     const checkSumBuf = this.checkSum
-      ? Buffer.from([encrypted.reduce((prev, curr) => prev + curr) % 256])
+      ? Buffer.from([
+          encrypted.reduce((prev, curr) => {
+            return prev + curr;
+          }) % 256,
+        ])
       : Buffer.alloc(0);
-    const encoded = this.encoder.encode(
-      Buffer.concat([encrypted, checkSumBuf])
-    );
+    const encoded = this.encoder.encode(Buffer.concat([encrypted, checkSumBuf]));
     return this.usePrefixSalt ? salt + encoded : encoded;
   }
 
@@ -246,7 +241,7 @@ export class FlipID {
       num = num * 256 + decryptedBlock[i];
       if (num > Number.MAX_SAFE_INTEGER) {
         throw new errors.FlipIDNumberOverflowError(
-          `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`
+          `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`,
         );
       }
     }
@@ -279,7 +274,7 @@ export class FlipID {
    */
   decodeToString(encoded: string): string {
     const decryptedBlock = this.decodeToBuffer(encoded);
-    const plaintext = decryptedBlock.toString('utf8');
+    const plaintext = decryptedBlock.toString("utf8");
     return plaintext;
   }
 
@@ -292,7 +287,7 @@ export class FlipID {
    */
   decodeToBuffer(encoded: string): Buffer {
     if (encoded.length === 0) {
-      throw new errors.FlipIDInvalidEncodedStringError('Encoded string cannot be empty');
+      throw new errors.FlipIDInvalidEncodedStringError("Encoded string cannot be empty");
     }
 
     let saltSize = 0;
@@ -302,34 +297,34 @@ export class FlipID {
     }
 
     if (!this.encoder.validate(encoded)) {
-      throw new errors.FlipIDInvalidEncodedStringError('Encoded string contains invalid characters');
+      throw new errors.FlipIDInvalidEncodedStringError(
+        "Encoded string contains invalid characters",
+      );
     }
 
     const checkSumSize = this.checkSum ? 1 : 0;
     const expectedSize =
-      this.blockSize > 0
-        ? saltSize + this.headerSize + this.blockSize + checkSumSize
-        : undefined;
+      this.blockSize > 0 ? saltSize + this.headerSize + this.blockSize + checkSumSize : undefined;
     const decodedBuf = this.encoder.decode(
       encoded,
-      expectedSize !== undefined ? { size: expectedSize } : undefined
+      expectedSize !== undefined ? { size: expectedSize } : undefined,
     );
 
     if (this.checkSum) {
       const checkSumByte = decodedBuf.subarray(-1)[0];
       const checkSum =
-        decodedBuf.subarray(0, -1).reduce((prev, curr) => prev + curr, 0) % 256;
+        decodedBuf.subarray(0, -1).reduce((prev, curr) => {
+          return prev + curr;
+        }, 0) % 256;
       if (checkSum !== checkSumByte) {
-        throw new errors.FlipIDChecksumError('Checksum mismatch');
+        throw new errors.FlipIDChecksumError("Checksum mismatch");
       }
     }
     const encryptedBuf = decodedBuf.subarray(0, this.checkSum ? -1 : undefined);
 
     const concatBuf = this.transformer.decrypt(encryptedBuf);
     const blockSize =
-      this.blockSize > 0
-        ? this.blockSize
-        : concatBuf.length - saltSize - this.headerSize;
+      this.blockSize > 0 ? this.blockSize : concatBuf.length - saltSize - this.headerSize;
 
     const iv = Buffer.alloc(saltSize + this.headerSize);
     concatBuf.subarray(blockSize).copy(iv);

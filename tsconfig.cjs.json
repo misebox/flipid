@@ -4,7 +4,7 @@
         "module": "CommonJS",
         "moduleResolution": "Node",
         "verbatimModuleSyntax": false,
-        "lib": ["ES2021"],
+        "lib": ["ES2023"],
         "outDir": "./dist/cjs"
     }
 }

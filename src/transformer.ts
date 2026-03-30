@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer';
+import { Buffer } from "node:buffer";
 
 /**
  * Folds a key buffer to a target size by XORing overlapping chunks.
@@ -57,10 +57,7 @@ const createPrng = (seedByte: number) => {
   };
 };
 
-const generateShuffleTable = (
-  blockSize: number,
-  seed: Buffer
-): [number, number][][] => {
+const generateShuffleTable = (blockSize: number, seed: Buffer): [number, number][][] => {
   const table: [number, number][][] = [];
   for (const seedByte of seed) {
     const prng = createPrng(seedByte);
@@ -88,8 +85,8 @@ export const shuffle = (block: Buffer, seed: Buffer) => {
 export const unshuffle = (block: Buffer, seed: Buffer) => {
   const result = Buffer.from(block);
   const shuffleTable = generateShuffleTable(block.length, seed);
-  for (const pairs of [...shuffleTable].reverse()) {
-    for (const [i, j] of [...pairs].reverse()) {
+  for (const pairs of shuffleTable.toReversed()) {
+    for (const [i, j] of pairs.toReversed()) {
       [result[i], result[j]] = [result[j], result[i]];
     }
   }

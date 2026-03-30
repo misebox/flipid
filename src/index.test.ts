@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   FlipID,
   FlipIDGenerator,
@@ -14,20 +14,20 @@ import {
   unsignedToSigned,
   signedToUnsignedBigInt,
   unsignedToSignedBigInt,
-} from './index';
+} from "./index";
 
-describe('index exports', () => {
-  it('should export FlipID class', () => {
+describe("index exports", () => {
+  it("should export FlipID class", () => {
     expect(FlipID).toBeDefined();
-    const instance = new FlipID({ key: 'test', blockSize: 4 });
+    const instance = new FlipID({ key: "test", blockSize: 4 });
     expect(instance).toBeInstanceOf(FlipID);
   });
 
-  it('should export FlipIDGenerator as deprecated alias', () => {
+  it("should export FlipIDGenerator as deprecated alias", () => {
     expect(FlipIDGenerator).toBe(FlipID);
   });
 
-  it('should export all error classes', () => {
+  it("should export all error classes", () => {
     expect(FlipIDInvalidDataTypeError).toBeDefined();
     expect(FlipIDBlockTooLargeError).toBeDefined();
     expect(FlipIDInvalidArgumentError).toBeDefined();
@@ -36,12 +36,12 @@ describe('index exports', () => {
     expect(FlipIDInvalidEncodedStringError).toBeDefined();
   });
 
-  it('should export bufferbase utilities', () => {
+  it("should export bufferbase utilities", () => {
     expect(Codecs).toBeDefined();
     expect(createCodec).toBeDefined();
   });
 
-  it('should export signed/unsigned conversion utilities', () => {
+  it("should export signed/unsigned conversion utilities", () => {
     expect(signedToUnsigned).toBeDefined();
     expect(unsignedToSigned).toBeDefined();
     expect(signedToUnsignedBigInt).toBeDefined();

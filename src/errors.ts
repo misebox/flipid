@@ -2,7 +2,7 @@
 export class FlipIDInvalidDataTypeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDInvalidDataTypeError';
+    this.name = "FlipIDInvalidDataTypeError";
   }
 }
 
@@ -10,7 +10,7 @@ export class FlipIDInvalidDataTypeError extends Error {
 export class FlipIDBlockTooLargeError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDBlockTooLargeError';
+    this.name = "FlipIDBlockTooLargeError";
   }
 }
 
@@ -18,7 +18,7 @@ export class FlipIDBlockTooLargeError extends Error {
 export class FlipIDInvalidArgumentError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDInvalidArgumentError';
+    this.name = "FlipIDInvalidArgumentError";
   }
 }
 
@@ -26,7 +26,7 @@ export class FlipIDInvalidArgumentError extends Error {
 export class FlipIDChecksumError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDChecksumError';
+    this.name = "FlipIDChecksumError";
   }
 }
 
@@ -34,7 +34,7 @@ export class FlipIDChecksumError extends Error {
 export class FlipIDNumberOverflowError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDNumberOverflowError';
+    this.name = "FlipIDNumberOverflowError";
   }
 }
 
@@ -42,7 +42,7 @@ export class FlipIDNumberOverflowError extends Error {
 export class FlipIDInvalidEncodedStringError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'FlipIDInvalidEncodedStringError';
+    this.name = "FlipIDInvalidEncodedStringError";
   }
 }
 

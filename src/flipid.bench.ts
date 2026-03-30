@@ -1,20 +1,20 @@
-import { FlipIDGenerator } from './flipid.js';
-import { describe, bench } from 'vitest';
+import { FlipIDGenerator } from "./flipid.js";
+import { describe, bench } from "vitest";
 
-describe('benchmark', () => {
-  const g = new FlipIDGenerator({ key: 'secret', blockSize: 5 });
+describe("benchmark", () => {
+  const g = new FlipIDGenerator({ key: "secret", blockSize: 5 });
   bench(
-    'encodeNumber of 123456',
+    "encodeNumber of 123456",
     () => {
       const encrypted = g.encodeNumber(123456);
     },
-    { time: 100 }
+    { time: 100 },
   );
   bench(
-    'decodeNumber of 123456',
+    "decodeNumber of 123456",
     () => {
       const encrypted = g.encodeNumber(123456);
     },
-    { time: 100 }
+    { time: 100 },
   );
 });

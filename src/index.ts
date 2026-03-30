@@ -4,7 +4,7 @@ export {
   // Deprecated aliases
   FlipIDGenerator,
   type FlipIDGeneratorOptions,
-} from './flipid.js';
+} from "./flipid.js";
 export {
   FlipIDInvalidDataTypeError,
   FlipIDBlockTooLargeError,
@@ -19,13 +19,13 @@ export {
   CheckSumError,
   NumberOverflowError,
   InvalidEncodedStringError,
-} from './errors.js';
+} from "./errors.js";
 // Re-export from bufferbase for convenience
-export { Codecs, createCodec, type ICodec } from 'bufferbase';
+export { Codecs, createCodec, type ICodec } from "bufferbase";
 // Utilities
 export {
   signedToUnsigned,
   unsignedToSigned,
   signedToUnsignedBigInt,
   unsignedToSignedBigInt,
-} from './utils.js';
+} from "./utils.js";
