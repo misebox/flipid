@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+usage() {
+  cat <<'EOS'
+Usage: bin/release <patch|minor|major|current>
+
+  patch|minor|major  bump the version, commit, tag and publish to npm
+  current            publish the version in package.json as-is
+
+Requires a clean working tree on main, and npm credentials
+(NPM_TOKEN for the repository .npmrc, or a logged-in npm user).
+EOS
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+step() {
+  echo "==> $*"
+}
+
+bump=${1:-}
+case "$bump" in
+  patch | minor | major | current) ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    usage >&2
+    exit 1
+    ;;
+esac
+
+branch=$(git symbolic-ref --short HEAD)
+[[ $branch == main ]] || die "release runs on main only (current: $branch)"
+[[ -z $(git status --porcelain) ]] || die "working tree is not clean"
+
+step "lint"
+bun run lint
+
+step "test"
+bunx vitest run
+
+step "build"
+bun run build
+
+if [[ $bump != current ]]; then
+  step "version ($bump)"
+  npm version "$bump" --no-git-tag-version >/dev/null
+fi
+
+version=$(node -p 'require("./package.json").version')
+tag="v$version"
+
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  [[ $bump == current ]] || die "tag $tag already exists (revert package.json before retrying)"
+  step "tag $tag already exists, keeping it"
+else
+  if ! git diff --quiet -- package.json; then
+    step "commit $tag"
+    git commit -q -m "$tag" package.json
+  fi
+  step "tag $tag"
+  git tag -a "$tag" -m "$tag"
+fi
+
+step "publish $tag"
+npm publish
+
+echo
+echo "published $tag. push it with:"
+echo "  git push origin main --follow-tags"
