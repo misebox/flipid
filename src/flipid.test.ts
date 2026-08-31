@@ -1,255 +1,299 @@
-import errors from "./errors";
+import { describe, expect, it } from "vitest";
+import { Codecs } from "bufferbase";
 import { FlipID } from "./flipid.js";
-import { describe, it, expect } from "vitest";
+import { FlipIDError } from "./errors.js";
 
-describe("FlipID", () => {
-  describe("encode", () => {
-    it("should return the expected result", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const data = Buffer.from("hello");
+const key = "my-app-key";
 
-      const res = g.encode(data);
+describe("FlipID.number", () => {
+  const ids = FlipID.number({ key, bytes: 4 });
 
-      expect(res).toEqual("3RF1XPER0Y");
-    });
-
-    it("should return the same result as another instance with the same key", () => {
-      const g1 = new FlipID({ key: "secret", blockSize: 5 });
-      const g2 = new FlipID({ key: "secret", blockSize: 5 });
-      const data = Buffer.from("hello");
-
-      const res1 = g1.encode(data);
-      const res2 = g2.encode(data);
-
-      expect(res1).toEqual(res2);
-    });
-
-    it("should return the string that is difference from original", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const data = Buffer.from("hello");
-
-      const res = g.encode(data);
-
-      expect(res).not.toEqual(Buffer.from("hello"));
-    });
-
-    it("should generate different string when different key used", () => {
-      const g1 = new FlipID({ key: "secret1", blockSize: 7 });
-      const g2 = new FlipID({ key: "secret2", blockSize: 7 });
-      const data = Buffer.from("hello");
-
-      const res1 = g1.encode(data);
-      const res2 = g2.encode(data);
-
-      expect(res1).not.toEqual(res2);
-    });
-
-    it("should generate different string when different blockSize used", () => {
-      const g1 = new FlipID({ key: "secret", blockSize: 5 });
-      const g2 = new FlipID({ key: "secret", blockSize: 6 });
-      const data = Buffer.from("hello");
-
-      const res1 = g1.encode(data);
-      const res2 = g2.encode(data);
-
-      expect(res1).not.toEqual(res2);
-    });
-
-    it("should generate different string when different headerSize used", () => {
-      const g1 = new FlipID({
-        key: "secret",
-        blockSize: 5,
-        headerSize: 1,
-      });
-      const g2 = new FlipID({
-        key: "secret",
-        blockSize: 5,
-        headerSize: 2,
-      });
-      const data = Buffer.from("hello");
-
-      const res1 = g1.encode(data);
-      const res2 = g2.encode(data);
-
-      expect(res1).not.toEqual(res2);
-    });
+  it("round-trips", () => {
+    for (const value of [0, 1, 2, 255, 256, 123456, 4294967295]) {
+      expect(ids.decode(ids.encode(value))).toBe(value);
+    }
   });
-  describe("decode", () => {
-    it("should return the expected result", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const encrypted = "3RF1XPER0Y";
 
-      const res = g.decodeToBuffer(encrypted);
-
-      expect(res).toEqual(Buffer.from("hello"));
-    });
+  it("writes ids of exactly length characters", () => {
+    for (let value = 0; value < 20000; value++) {
+      expect(ids.encode(value)).toHaveLength(ids.length);
+    }
   });
-  describe("encode and decode reversibility", () => {
-    it("decode should return the original buffer that was passed into encode", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const data = Buffer.from("hello", "utf8");
 
-      const encrypted = g.encode(data);
-      const decrypted = g.decodeToBuffer(encrypted);
+  it("maps 4 bytes plus a check byte onto 8 Crockford characters", () => {
+    expect(ids.length).toBe(8);
+  });
 
-      expect(decrypted).toEqual(data);
+  it("gives consecutive values unrelated ids", () => {
+    const a = ids.encode(1);
+    const b = ids.encode(2);
+    const shared = [...a].filter((char, i) => {
+      return char === b[i];
     });
-    it("decode should return the original number that was passed into encode", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const encrypted = g.encodeNumber(123456789);
-      const decrypted = g.decodeToNumber(encrypted);
+    expect(shared.length).toBeLessThanOrEqual(2);
+  });
 
-      expect(decrypted).toEqual(123456789);
-    });
-    it("should handle numbers of various digits correctly", () => {
-      const g = new FlipID({ key: "secretkey", blockSize: 8 });
-      for (let i = 1; i < 62; i++) {
-        const value = 2n ** BigInt(i) - 1n;
-        const encrypted = g.encodeNumber(value);
-        const decrypted = g.decodeToBigInt(encrypted);
+  it("rejects values outside the width", () => {
+    expect(() => {
+      return ids.encode(4294967296);
+    }).toThrow(FlipIDError);
+    expect(() => {
+      return ids.encode(-1);
+    }).toThrow(FlipIDError);
+  });
 
-        expect(value).toEqual(decrypted);
+  it("rejects values that are not whole numbers", () => {
+    for (const value of [1.5, NaN, Infinity]) {
+      expect(() => {
+        return ids.encode(value);
+      }).toThrow(FlipIDError);
+    }
+  });
+
+  it("reports INVALID_VALUE on the error", () => {
+    try {
+      ids.encode(-1);
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(FlipIDError);
+      expect((error as FlipIDError).code).toBe("INVALID_VALUE");
+    }
+  });
+
+  it("carries negative numbers when signed", () => {
+    const signed = FlipID.number({ key, bytes: 4, signed: true });
+    for (const value of [-2147483648, -1, 0, 1, 2147483647]) {
+      expect(signed.decode(signed.encode(value))).toBe(value);
+    }
+    expect(() => {
+      return signed.encode(2147483648);
+    }).toThrow(FlipIDError);
+  });
+
+  it("refuses widths a number cannot hold", () => {
+    expect(() => {
+      return FlipID.number({ key, bytes: 7 });
+    }).toThrow(FlipIDError);
+  });
+});
+
+describe("decode", () => {
+  const ids = FlipID.number({ key, bytes: 4 });
+
+  it("returns null for strings it did not write", () => {
+    for (const input of ["", "not-an-id", "!!!!!!!!", "0123456789012345"]) {
+      expect(ids.decode(input)).toBeNull();
+    }
+  });
+
+  it("rejects almost every random string of the right shape", () => {
+    const chars = Codecs.base32crockford.chars;
+    let accepted = 0;
+    const trials = 20000;
+    for (let i = 0; i < trials; i++) {
+      let candidate = "";
+      for (let j = 0; j < ids.length; j++) {
+        candidate += chars[Math.floor(Math.random() * chars.length)];
       }
-    });
-    it("decode should return the original string that was passed into encode", () => {
-      const g = new FlipID({ key: "secret", blockSize: 10 });
-      const encrypted = g.encodeString("helloworld");
-      const decrypted = g.decodeToString(encrypted);
-
-      expect(decrypted).toEqual("helloworld");
-    });
-    it("should throw CheckSumError if checksum is mismatch", () => {
-      const g1 = new FlipID({
-        key: "secret",
-        blockSize: 5,
-        checkSum: true,
-      });
-      const data = "hello";
-      const encoded = g1.encodeBuffer(Buffer.from(data));
-      const checksumBroken = encoded.slice(0, encoded.length - 1) + "0";
-
-      expect(() => g1.decodeToBuffer(checksumBroken)).toThrowError(errors.FlipIDChecksumError);
-    });
-  });
-  describe("constructor arguments", () => {
-    it("should use default values when no arguments passed", () => {
-      const g = new FlipID({ key: "secret", blockSize: 5 });
-      const data = Buffer.from("hello");
-
-      const res = g.encode(data);
-
-      expect(g["headerSize"]).toEqual(1);
-      expect(g["checkSum"]).toEqual(false);
-      expect(res).not.toEqual(data);
-    });
+      if (ids.decode(candidate) !== null) {
+        accepted++;
+      }
+    }
+    expect(accepted / trials).toBeLessThan(0.01);
   });
 
-  describe("edge cases", () => {
-    describe("encodeBigInt", () => {
-      it("should encode and decode bigint values correctly", () => {
-        const g = new FlipID({ key: "secret", blockSize: 16 });
-        const bigValue = 2n ** 64n - 1n;
-        const encoded = g.encodeBigInt(bigValue);
-        const decoded = g.decodeToBigInt(encoded);
-        expect(decoded).toEqual(bigValue);
-      });
-
-      it("should throw InvalidDataTypeError for non-bigint input", () => {
-        const g = new FlipID({ key: "secret", blockSize: 8 });
-        expect(() => g.encodeBigInt(123 as unknown as bigint)).toThrowError(
-          errors.FlipIDInvalidDataTypeError,
-        );
-      });
+  it("rejects ids written with another key", () => {
+    const other = FlipID.number({ key: "another-key", bytes: 4 });
+    const mismatches = [...Array(500).keys()].filter((value) => {
+      return ids.decode(other.encode(value)) === null;
     });
+    expect(mismatches.length).toBeGreaterThan(490);
+  });
 
-    describe("decodeToNumber overflow", () => {
-      it("should throw NumberOverflowError for values exceeding MAX_SAFE_INTEGER", () => {
-        const g = new FlipID({ key: "secret", blockSize: 8 });
-        const bigValue = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
-        const encoded = g.encodeBigInt(bigValue);
-        expect(() => g.decodeToNumber(encoded)).toThrowError(errors.FlipIDNumberOverflowError);
-      });
+  it("accepts ids in either case, and with hyphens", () => {
+    const encoded = ids.encode(123456);
+    expect(ids.decode(encoded.toLowerCase())).toBe(123456);
+    expect(ids.decode(`${encoded.slice(0, 4)}-${encoded.slice(4)}`)).toBe(123456);
+  });
 
-      it("should not throw for values within safe integer range", () => {
-        const g = new FlipID({ key: "secret", blockSize: 8 });
-        const safeValue = Number.MAX_SAFE_INTEGER;
-        const encoded = g.encodeNumber(safeValue);
-        const decoded = g.decodeToNumber(encoded);
-        expect(decoded).toEqual(safeValue);
-      });
+  it("reads O and I as 0 and 1", () => {
+    const encoded = ids.encode(7).replace(/0/g, "O").replace(/1/g, "I");
+    expect(ids.decode(encoded)).toBe(7);
+  });
+
+  it("takes wider check data for longer odds", () => {
+    const wide = FlipID.number({ key, bytes: 4, check: 2 });
+    expect(wide.length).toBeGreaterThan(ids.length);
+    expect(wide.decode(wide.encode(99))).toBe(99);
+  });
+
+  it("carries no check data when check is 0", () => {
+    const bare = FlipID.number({ key, bytes: 2, check: 0 });
+    expect(bare.length).toBe(4);
+    expect(bare.decode(bare.encode(65535))).toBe(65535);
+  });
+
+  it("refuses a check width it cannot fill", () => {
+    expect(() => {
+      return FlipID.number({ key, bytes: 4, check: 5 });
+    }).toThrow(FlipIDError);
+  });
+});
+
+describe("FlipID.bigint", () => {
+  const ids = FlipID.bigint({ key, bytes: 8 });
+
+  it("round-trips the whole 64-bit range", () => {
+    for (const value of [0n, 1n, 2n ** 32n, 2n ** 63n, 2n ** 64n - 1n]) {
+      expect(ids.decode(ids.encode(value))).toBe(value);
+    }
+  });
+
+  it("rejects numbers", () => {
+    expect(() => {
+      return ids.encode(1 as unknown as bigint);
+    }).toThrow(FlipIDError);
+  });
+
+  it("carries negative numbers when signed", () => {
+    const signed = FlipID.bigint({ key, bytes: 8, signed: true });
+    for (const value of [-(2n ** 63n), -1n, 0n, 2n ** 63n - 1n]) {
+      expect(signed.decode(signed.encode(value))).toBe(value);
+    }
+  });
+
+  it("rejects values outside the width", () => {
+    expect(() => {
+      return ids.encode(2n ** 64n);
+    }).toThrow(FlipIDError);
+    expect(() => {
+      return ids.encode(-1n);
+    }).toThrow(FlipIDError);
+  });
+});
+
+describe("FlipID.bytes", () => {
+  const ids = FlipID.bytes({ key, size: 16 });
+
+  it("round-trips a UUID", () => {
+    const uuid = Uint8Array.from({ length: 16 }, (_, i) => {
+      return i * 7 + 1;
     });
+    expect(ids.decode(ids.encode(uuid))).toEqual(uuid);
+  });
 
-    describe("input validation", () => {
-      it("should throw InvalidEncodedStringError for empty string", () => {
-        const g = new FlipID({ key: "secret", blockSize: 5 });
-        expect(() => g.decodeToBuffer("")).toThrowError(errors.FlipIDInvalidEncodedStringError);
-      });
+  it("rejects the wrong number of bytes", () => {
+    expect(() => {
+      return ids.encode(new Uint8Array(15));
+    }).toThrow(FlipIDError);
+  });
 
-      it("should throw InvalidEncodedStringError for invalid characters", () => {
-        const g = new FlipID({ key: "secret", blockSize: 5 });
-        expect(() => g.decodeToBuffer("!!!invalid!!!")).toThrowError(
-          errors.FlipIDInvalidEncodedStringError,
-        );
-      });
+  it("does not modify its input", () => {
+    const input = new Uint8Array(16).fill(3);
+    ids.encode(input);
+    expect(input).toEqual(new Uint8Array(16).fill(3));
+  });
+});
+
+describe("FlipID.text", () => {
+  const ids = FlipID.text({ key, size: 12 });
+
+  it("round-trips text shorter than the width", () => {
+    for (const value of ["", "a", "hello", "日本語"]) {
+      expect(ids.decode(ids.encode(value))).toBe(value);
+    }
+  });
+
+  it("rejects text wider than the width", () => {
+    expect(() => {
+      return ids.encode("this is far too long");
+    }).toThrow(FlipIDError);
+  });
+});
+
+describe("codecs", () => {
+  it("keeps ids fixed-length on a radix alphabet", () => {
+    const ids = FlipID.number({ key, bytes: 4, codec: "base58" });
+    for (let value = 0; value < 20000; value++) {
+      expect(ids.encode(value)).toHaveLength(ids.length);
+    }
+    expect(ids.decode(ids.encode(123456))).toBe(123456);
+  });
+
+  it("accepts a codec instance", () => {
+    const ids = FlipID.number({ key, bytes: 4, codec: Codecs.base64url });
+    expect(ids.decode(ids.encode(123456))).toBe(123456);
+  });
+
+  it("accepts a raw codec spec", () => {
+    const ids = FlipID.number({
+      key,
+      bytes: 2,
+      codec: { alphabet: "01", algorithm: "radix" },
     });
+    expect(ids.decode(ids.encode(1000))).toBe(1000);
+  });
 
-    describe("BlockTooLargeError", () => {
-      it("should throw when buffer exceeds blockSize", () => {
-        const g = new FlipID({ key: "secret", blockSize: 3 });
-        expect(() => g.encodeBuffer(Buffer.from("hello"))).toThrowError(
-          errors.FlipIDBlockTooLargeError,
-        );
-      });
+  it("refuses an unknown base name", () => {
+    expect(() => {
+      return FlipID.number({ key, bytes: 4, codec: "base99" as "base58" });
+    }).toThrow(FlipIDError);
+  });
+});
 
-      it("should throw when string exceeds blockSize", () => {
-        const g = new FlipID({ key: "secret", blockSize: 3 });
-        expect(() => g.encodeString("hello")).toThrowError(errors.FlipIDBlockTooLargeError);
-      });
-    });
+describe("options", () => {
+  it("requires a key", () => {
+    expect(() => {
+      return FlipID.number({ key: "", bytes: 4 });
+    }).toThrow(FlipIDError);
+  });
 
-    describe("prefixSalt edge cases", () => {
-      it("should work correctly with usePrefixSalt enabled", () => {
-        const g = new FlipID({
-          key: "secret",
-          blockSize: 5,
-          usePrefixSalt: true,
-        });
-        const encoded = g.encodeBuffer(Buffer.from("hello"), "A");
-        const decoded = g.decodeToBuffer(encoded);
-        expect(decoded).toEqual(Buffer.from("hello"));
-      });
+  it("reports INVALID_OPTION on the error", () => {
+    try {
+      FlipID.number({ key: "", bytes: 4 });
+      expect.unreachable();
+    } catch (error) {
+      expect((error as FlipIDError).code).toBe("INVALID_OPTION");
+    }
+  });
+});
 
-      it("should throw InvalidArgumentError when usePrefixSalt is true but no salt provided", () => {
-        const g = new FlipID({
-          key: "secret",
-          blockSize: 5,
-          usePrefixSalt: true,
-        });
-        expect(() => g.encodeBuffer(Buffer.from("hello"))).toThrowError(
-          errors.FlipIDInvalidArgumentError,
-        );
-      });
+describe("type guards", () => {
+  it("rejects values of the wrong type", () => {
+    const cases: [FlipID<never>, unknown][] = [
+      [FlipID.number({ key, bytes: 4 }) as never, "1"],
+      [FlipID.bigint({ key, bytes: 8 }) as never, 1],
+      [FlipID.bytes({ key, size: 4 }) as never, "abcd"],
+      [FlipID.text({ key, size: 4 }) as never, 1],
+    ];
+    for (const [ids, value] of cases) {
+      expect(() => {
+        return ids.encode(value as never);
+      }).toThrow(FlipIDError);
+    }
+  });
 
-      it("should throw InvalidArgumentError when usePrefixSalt is false but salt provided", () => {
-        const g = new FlipID({
-          key: "secret",
-          blockSize: 5,
-          usePrefixSalt: false,
-        });
-        expect(() => g.encodeBuffer(Buffer.from("hello"), "A")).toThrowError(
-          errors.FlipIDInvalidArgumentError,
-        );
-      });
-    });
+  it("refuses a width of zero", () => {
+    expect(() => {
+      return FlipID.bytes({ key, size: 0 });
+    }).toThrow(FlipIDError);
+  });
+});
 
-    describe("blockSize=0 (variable length)", () => {
-      it("should handle variable length encoding", () => {
-        const g = new FlipID({ key: "secret", blockSize: 0 });
-        const data = Buffer.from("variable length data");
-        const encoded = g.encode(data);
-        const decoded = g.decodeToBuffer(encoded);
-        expect(decoded).toEqual(data);
-      });
-    });
+describe("text decoding", () => {
+  it("returns null when the bytes are not valid UTF-8", () => {
+    const ids = FlipID.text({ key, size: 4, check: 0 });
+    const chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    let rejected = 0;
+    for (let i = 0; i < 2000; i++) {
+      let candidate = "";
+      for (let j = 0; j < ids.length; j++) {
+        candidate += chars[Math.floor(Math.random() * chars.length)];
+      }
+      if (ids.decode(candidate) === null) {
+        rejected++;
+      }
+    }
+    expect(rejected).toBeGreaterThan(0);
   });
 });

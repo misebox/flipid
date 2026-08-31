@@ -1,24 +1,28 @@
 # FlipID
 
-FlipID is a simple and reversible ID encoder. It transforms numeric IDs into unguessable strings and back.
+FlipID maps numbers, byte strings and short text to fixed-length, unguessable-looking IDs, and back again.
+
+```typescript
+import { FlipID } from 'flipid';
+
+const ids = FlipID.number({ key: 'my-app-key', bytes: 4 });
+
+ids.encode(123456);      // 'B9P2V83A'
+ids.decode('B9P2V83A');  // 123456
+ids.decode('nonsense');  // null
+```
 
 ## This is NOT Encryption
 
-FlipID is an **ID encoder**, not a cryptographic library.
+FlipID is an ID encoder, not a cryptographic library.
 
 - Does NOT provide security or confidentiality
-- Uses `Math.sin()` based PRNG (predictable, not cryptographically secure)
 - Anyone with the key can decode; anyone determined can likely reverse-engineer
+- The transformation is a keyed byte shuffle, not a cipher
 
-**Use cases:**
-- Hiding sequential database IDs in URLs (`/users/1` → `/users/X7KQ9M`)
-- Making IDs non-enumerable for casual observers
-- URL shorteners, invite codes, etc.
+**Use it for:** hiding sequential database IDs in URLs (`/users/1` → `/users/B9P2V83A`), making IDs non-enumerable for casual observers, invite codes, short links.
 
-**Do NOT use for:**
-- Protecting sensitive data
-- Authentication tokens
-- Anything requiring real security
+**Do NOT use it for:** protecting sensitive data, authentication tokens, or anything that needs real security.
 
 ## Installation
 
@@ -28,203 +32,119 @@ npm install flipid
 bun add flipid
 ```
 
-## Setup
+## Choosing a shape
 
-You need to decide two things:
-
-### 1. Key
-
-Any string that makes the transformation unique to your application.
-
-- Same key + same input = same output (deterministic)
-- Different key = different output
-- Keep it consistent across your application
-- Store in environment variables or config
-
-### 2. Block Size
-
-The fixed byte size for encoding. This determines output length.
-
-| blockSize | Max value                | Output length |
-|-----------|--------------------------|---------------|
-| 1         | 255 (2⁸-1)               | 2 chars       |
-| 2         | 65,535 (2¹⁶-1)           | 4 chars       |
-| 3         | 16,777,215 (2²⁴-1)       | 5 chars       |
-| 4         | ~4 billion (2³²-1)       | 7 chars       |
-| 8         | ~18 quintillion (2⁶⁴-1)  | 13 chars      |
-| 0         | unlimited (variable)     | varies        |
-
-- Use `blockSize: 4` for typical database IDs (32-bit)
-- Use `blockSize: 8` for large IDs or UUIDs (64-bit)
-- Use `blockSize: 0` for variable-length data
-
-**Important:** Once you choose key and blockSize, keep them unchanged. Changing either will make existing encoded IDs undecodable.
-
-## Usage
-
-### Basic Example
+Pick the factory that matches the value you hold. Each one gives you an object with `encode`, `decode` and `length`.
 
 ```typescript
-import { FlipID } from 'flipid';
-
-const flipid = new FlipID({
-  key: 'my-app-key',
-  blockSize: 4,
-});
-
-// Encode a number
-const encoded = flipid.encodeNumber(123456);
-console.log(encoded); // "59RQ4YPK"
-
-// Decode back to number
-const decoded = flipid.decodeToNumber(encoded);
-console.log(decoded); // 123456
+FlipID.number({ key, bytes: 4 })              // number, up to 6 bytes
+FlipID.bigint({ key, bytes: 8 })              // bigint, any width
+FlipID.bytes ({ key, size: 16 })              // Uint8Array of exactly 16 bytes
+FlipID.text  ({ key, size: 8 })               // UTF-8 string of up to 8 bytes
 ```
 
-### Encoding Different Types
+`number` is capped at 6 bytes because that is the widest value that always fits in a JavaScript `number`. For anything wider, use `bigint`.
+
+Negative numbers need `signed: true`, which halves the positive range:
 
 ```typescript
-const flipid = new FlipID({ key: 'my-app-key', blockSize: 8 });
-
-// Numbers
-flipid.encodeNumber(42);              // "X32AHV9WN1PHS3"
-flipid.decodeToNumber('X32AHV9WN1PHS3'); // 42
-
-// BigInt (for large numbers)
-flipid.encodeBigInt(2n ** 64n - 1n);  // "6HRPREKM3HCRTK"
-flipid.decodeToBigInt('6HRPREKM3HCRTK'); // 18446744073709551615n
-
-// Strings
-flipid.encodeString('hello');         // "1Y0WY29E507G5B9"
-flipid.decodeToString('1Y0WY29E507G5B9'); // "hello"
-
-// Buffers
-flipid.encodeBuffer(Buffer.from('data')); // "3RY1HMBZZ7CFNZQ"
-flipid.decodeToBuffer('3RY1HMBZZ7CFNZQ');  // <Buffer 64 61 74 61>
+const ids = FlipID.number({ key, bytes: 4, signed: true });
+ids.encode(-1);  // '5E0TVAX2'
+ids.decode('5E0TVAX2');  // -1
 ```
 
-### Custom Encoder
+## Length
+
+Every ID an instance writes is exactly `ids.length` characters. The length depends on the width and the alphabet, never on the value.
+
+| bytes | max value (unsigned) | Crockford | base58 | base64url |
+|-------|----------------------|-----------|--------|-----------|
+| 1  | 255                 | 4  | 3  | 3  |
+| 2  | 65,535              | 5  | 5  | 4  |
+| 3  | 16,777,215          | 7  | 6  | 6  |
+| 4  | 4,294,967,295       | 8  | 7  | 7  |
+| 5  | 1,099,511,627,775   | 10 | 9  | 8  |
+| 6  | 281,474,976,710,655 | 12 | 10 | 10 |
+| 8  | 2⁶⁴-1               | 15 | 13 | 12 |
+| 16 | 2¹²⁸-1 (a UUID)     | 28 | 24 | 23 |
+
+The table assumes the default `check: 1`. Each extra check byte adds about 1.6 Crockford characters.
+
+Pick the width from the largest value you will ever store, and keep it. Changing `key`, `bytes`, `check` or the codec changes every ID.
+
+## Invalid IDs
+
+`decode` returns `null` rather than throwing. Anything the instance did not write — a typo, an ID from another key, a string of the wrong length — comes back as `null`.
 
 ```typescript
-import { FlipID, Codecs } from 'flipid';
-
-// Default: Base32 Crockford (0-9, A-Z excluding I, L, O, U)
-const f1 = new FlipID({ key: 'my-app-key', blockSize: 4 });
-f1.encodeNumber(1); // "119G0PG1"
-f1.encodeNumber(2); // "1C81468G"
-f1.encodeNumber(3); // "191562GH"
-
-// Base64 URL-safe (shorter output)
-const f2 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base64url });
-f2.encodeNumber(1); // "hTAFoB"
-f2.encodeNumber(2); // "sQEhkQ"
-f2.encodeNumber(3); // "pCUwoR"
-
-// Base58 (Bitcoin-style, no confusing chars: 0, O, I, l)
-const f3 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base58 });
-f3.encodeNumber(1); // "wUJjP6"
-f3.encodeNumber(2); // "2FPg1ew"
-f3.encodeNumber(3); // "2A8eNmE"
-
-// Hexadecimal
-const f4 = new FlipID({ key: 'my-app-key', blockSize: 4, encoder: Codecs.base16 });
-f4.encodeNumber(1); // "853005A01"
-f4.encodeNumber(2); // "B10121910"
-f4.encodeNumber(3); // "A42530A11"
-```
-
-### Error Handling
-
-```typescript
-import {
-  FlipID,
-  FlipIDNumberOverflowError,
-  FlipIDInvalidEncodedStringError,
-} from 'flipid';
-
-const flipid = new FlipID({ key: 'my-app-key', blockSize: 4 });
-
-try {
-  flipid.decodeToBuffer('!!!invalid!!!');
-} catch (e) {
-  if (e instanceof FlipIDInvalidEncodedStringError) {
-    console.error('Invalid encoded string');
-  }
-}
-
-// For large values, use BigInt methods
-const flipid8 = new FlipID({ key: 'my-app-key', blockSize: 8 });
-const encoded = flipid8.encodeBigInt(2n ** 60n);
-try {
-  flipid8.decodeToNumber(encoded); // throws: exceeds MAX_SAFE_INTEGER
-} catch (e) {
-  if (e instanceof FlipIDNumberOverflowError) {
-    const value = flipid8.decodeToBigInt(encoded); // use BigInt instead
-  }
+const id = req.params.id;
+const userId = ids.decode(id);
+if (userId === null) {
+  return notFound();
 }
 ```
 
-### Signed Integers
+Detection is probabilistic. Each check byte lets `decode` reject 255 of every 256 strings that reach it; the rest decode to an arbitrary value of the right shape.
 
-FlipID only accepts unsigned integers. Use the utility functions for signed values:
+| check | strings rejected | length at `bytes: 4` |
+|-------|------------------|---------------------|
+| 0 | none — every string of the right length decodes | 7 |
+| 1 (default) | ~255 of 256 | 8 |
+| 2 | ~65,535 of 65,536 | 10 |
+| 3 | all but ~1 in 16.7 million | 12 |
+| 4 | all but ~1 in 4.3 billion | 13 |
+
+Use `check: 2` or more when an ID that silently resolves to the wrong record would be a problem.
+
+## Alphabets
+
+The default is Crockford's Base32 (`0-9A-Z` without `I`, `L`, `O`, `U`) read as an RFC 4648 bit-block encoding. Decoding accepts either case, reads `I` and `L` as `1` and `O` as `0`, and ignores hyphens, so an ID read off paper still works:
 
 ```typescript
-import { FlipID, signedToUnsigned, unsignedToSigned } from 'flipid';
-
-const flipid = new FlipID({ key: 'my-app-key', blockSize: 4 });
-
-// Encode signed integer
-const encoded = flipid.encodeNumber(signedToUnsigned(-1));    // 4294967295
-const decoded = unsignedToSigned(flipid.decodeToNumber(encoded)); // -1
-
-// For BigInt (64-bit)
-import { signedToUnsignedBigInt, unsignedToSignedBigInt } from 'flipid';
-
-const flipid8 = new FlipID({ key: 'my-app-key', blockSize: 8 });
-const encoded8 = flipid8.encodeBigInt(signedToUnsignedBigInt(-1n));
-const decoded8 = unsignedToSignedBigInt(flipid8.decodeToBigInt(encoded8)); // -1n
+ids.decode('b9p2-v83a');  // 123456
 ```
 
-## API
+Pass `codec` to choose another alphabet — by name, or as a codec from `bufferbase`:
 
-### `FlipID`
+```typescript
+FlipID.number({ key, bytes: 4, codec: 'base58' }).encode(123456);     // 'BChDhA1'  — no 0, O, I, l
+FlipID.number({ key, bytes: 4, codec: 'base64url' }).encode(123456);  // 'WmwtoGo'  — shortest
+FlipID.number({ key, bytes: 4, codec: 'base32hex' }).encode(123456);  // 'B9M2R83A'
+```
 
-#### Constructor Options
+`Codecs`, `createCodec` and `ICodec` are re-exported from [bufferbase](https://www.npmjs.com/package/bufferbase), so a custom alphabet needs no second import.
 
-| Option          | Type      | Default          | Description                                      |
-|-----------------|-----------|------------------|--------------------------------------------------|
-| `key`           | `string`  | (required)       | Key for encoding/decoding transformation         |
-| `blockSize`     | `number`  | `4`              | Fixed block size in bytes. `0` = variable length |
-| `headerSize`    | `number`  | `1`              | Bytes for internal IV (1-4). Larger = more variation |
-| `checkSum`      | `boolean` | `false`          | Enable checksum validation on decode             |
-| `usePrefixSalt` | `boolean` | `false`          | Add single-char prefix salt to output            |
-| `encoder`       | `ICodec`  | Base32Crockford  | Custom encoder from bufferbase                   |
+## Errors
 
-#### Methods
+`FlipIDError` is the only error this package throws, and it carries a `code`:
 
-**Encoding:**
-- `encode(data, prefixSalt?)` - Polymorphic encoding (number, bigint, string, or Buffer)
-- `encodeNumber(num, prefixSalt?)` - Encode number or bigint
-- `encodeBigInt(num, prefixSalt?)` - Encode bigint (type-safe)
-- `encodeString(str, prefixSalt?)` - Encode string
-- `encodeBuffer(buffer, prefixSalt?)` - Encode buffer
+| code | thrown by | means |
+|------|-----------|-------|
+| `INVALID_OPTION` | the factories | the instance cannot be built as asked |
+| `INVALID_VALUE`  | `encode` | the value is the wrong type, or does not fit the width |
 
-**Decoding:**
-- `decodeToNumber(encoded)` - Decode to number (throws if > MAX_SAFE_INTEGER)
-- `decodeToBigInt(encoded)` - Decode to bigint
-- `decodeToString(encoded)` - Decode to string
-- `decodeToBuffer(encoded)` - Decode to buffer
+`decode` never throws.
 
-### Error Classes
+## Determinism
 
-| Error                             | Description                                    |
-|-----------------------------------|------------------------------------------------|
-| `FlipIDInvalidDataTypeError`      | Invalid input data type                        |
-| `FlipIDBlockTooLargeError`        | Input exceeds configured blockSize             |
-| `FlipIDInvalidArgumentError`      | Invalid argument combination                   |
-| `FlipIDChecksumError`             | Checksum mismatch on decode                    |
-| `FlipIDNumberOverflowError`       | Decoded value exceeds Number.MAX_SAFE_INTEGER  |
-| `FlipIDInvalidEncodedStringError` | Invalid encoded string format                  |
+The transformation uses 32-bit integer arithmetic only, so the same key and value give the same ID on every JavaScript engine and every platform. IDs written today stay readable.
+
+## Migrating from 0.5
+
+1.0 is a rewrite. IDs written by 0.5.x cannot be read by 1.0.
+
+| 0.5 | 1.0 |
+|-----|-----|
+| `new FlipID({ key, blockSize: 4 })` | `FlipID.number({ key, bytes: 4 })` |
+| `encodeNumber` / `encodeBigInt` / `encodeString` / `encodeBuffer` | `encode`, on the instance that matches the type |
+| `decodeToNumber` / `decodeToBigInt` / `decodeToString` / `decodeToBuffer` | `decode` |
+| throws six error classes | returns `null`, or throws `FlipIDError` |
+| `signedToUnsigned(-1)` before encoding | `signed: true` |
+| `Buffer` | `Uint8Array` |
+| `headerSize`, `usePrefixSalt`, `checkSum` | `check` |
+| `FlipIDGenerator` and the old error names | removed |
+
+Output length is now genuinely fixed. In 0.5 it varied with the value: about 2.8% of `blockSize: 4` IDs came out a character short.
 
 ## License
 

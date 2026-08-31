@@ -1,50 +1,17 @@
 import { describe, expect, it } from "vitest";
-import {
-  FlipID,
-  FlipIDGenerator,
-  FlipIDInvalidDataTypeError,
-  FlipIDBlockTooLargeError,
-  FlipIDInvalidArgumentError,
-  FlipIDChecksumError,
-  FlipIDNumberOverflowError,
-  FlipIDInvalidEncodedStringError,
-  Codecs,
-  createCodec,
-  signedToUnsigned,
-  unsignedToSigned,
-  signedToUnsignedBigInt,
-  unsignedToSignedBigInt,
-} from "./index";
+import { Codecs, createCodec, defaultCodec, FlipID, FlipIDError } from "./index.js";
 
-describe("index exports", () => {
-  it("should export FlipID class", () => {
-    expect(FlipID).toBeDefined();
-    const instance = new FlipID({ key: "test", blockSize: 4 });
-    expect(instance).toBeInstanceOf(FlipID);
+describe("index", () => {
+  it("exports the pieces a caller needs", () => {
+    expect(typeof FlipID.number).toBe("function");
+    expect(typeof FlipIDError).toBe("function");
+    expect(defaultCodec.algorithm).toBe("block");
+    expect(typeof createCodec).toBe("function");
+    expect(Codecs.base58.chars).toHaveLength(58);
   });
 
-  it("should export FlipIDGenerator as deprecated alias", () => {
-    expect(FlipIDGenerator).toBe(FlipID);
-  });
-
-  it("should export all error classes", () => {
-    expect(FlipIDInvalidDataTypeError).toBeDefined();
-    expect(FlipIDBlockTooLargeError).toBeDefined();
-    expect(FlipIDInvalidArgumentError).toBeDefined();
-    expect(FlipIDChecksumError).toBeDefined();
-    expect(FlipIDNumberOverflowError).toBeDefined();
-    expect(FlipIDInvalidEncodedStringError).toBeDefined();
-  });
-
-  it("should export bufferbase utilities", () => {
-    expect(Codecs).toBeDefined();
-    expect(createCodec).toBeDefined();
-  });
-
-  it("should export signed/unsigned conversion utilities", () => {
-    expect(signedToUnsigned).toBeDefined();
-    expect(unsignedToSigned).toBeDefined();
-    expect(signedToUnsignedBigInt).toBeDefined();
-    expect(unsignedToSignedBigInt).toBeDefined();
+  it("works end to end through the entry point", () => {
+    const ids = FlipID.number({ key: "k", bytes: 4 });
+    expect(ids.decode(ids.encode(42))).toBe(42);
   });
 });

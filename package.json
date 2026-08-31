@@ -57,7 +57,6 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "prepublishOnly": "bun run build",
     "release": "./bin/release",
-    "example": "bun run ./src/example.ts",
     "test": "vitest --coverage",
     "test:watch": "vitest watch",
     "lint": "oxlint src/",
@@ -69,6 +68,6 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "bufferbase": "^2.0.0"
+    "bufferbase": "^3.0.1"
   }
 }

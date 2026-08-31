@@ -1,76 +1,29 @@
-// Error for when the data is not a number, a bigint or a buffer
-export class FlipIDInvalidDataTypeError extends Error {
-  constructor(message: string) {
+/**
+ * Why a FlipID call failed.
+ *
+ * - `INVALID_OPTION` — the codec could not be built from the given options.
+ * - `INVALID_VALUE` — the value passed to `encode` is out of range for the
+ *   configured width, or is not of the configured type.
+ *
+ * Decoding never throws: `decode` returns `null` for anything it cannot read.
+ */
+export type FlipIDErrorCode = "INVALID_OPTION" | "INVALID_VALUE";
+
+/** The only error this package throws. */
+export class FlipIDError extends Error {
+  readonly code: FlipIDErrorCode;
+
+  constructor(code: FlipIDErrorCode, message: string) {
     super(message);
-    this.name = "FlipIDInvalidDataTypeError";
+    this.name = "FlipIDError";
+    this.code = code;
   }
 }
 
-// Error for when the block is larger than byteSize
-export class FlipIDBlockTooLargeError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FlipIDBlockTooLargeError";
-  }
-}
-
-// Error for when arguments are invalid
-export class FlipIDInvalidArgumentError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FlipIDInvalidArgumentError";
-  }
-}
-
-// Error for when the checksum is invalid
-export class FlipIDChecksumError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FlipIDChecksumError";
-  }
-}
-
-// Error for when number exceeds safe integer range
-export class FlipIDNumberOverflowError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FlipIDNumberOverflowError";
-  }
-}
-
-// Error for when input string is invalid for decoding
-export class FlipIDInvalidEncodedStringError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FlipIDInvalidEncodedStringError";
-  }
-}
-
-export default {
-  FlipIDInvalidDataTypeError,
-  FlipIDBlockTooLargeError,
-  FlipIDInvalidArgumentError,
-  FlipIDChecksumError,
-  FlipIDNumberOverflowError,
-  FlipIDInvalidEncodedStringError,
+export const invalidOption = (message: string): FlipIDError => {
+  return new FlipIDError("INVALID_OPTION", message);
 };
 
-// Deprecated aliases for backward compatibility
-
-/** @deprecated Use `FlipIDInvalidDataTypeError` instead */
-export const InvalidDataTypeError = FlipIDInvalidDataTypeError;
-
-/** @deprecated Use `FlipIDBlockTooLargeError` instead */
-export const BlockTooLargeError = FlipIDBlockTooLargeError;
-
-/** @deprecated Use `FlipIDInvalidArgumentError` instead */
-export const InvalidArgumentError = FlipIDInvalidArgumentError;
-
-/** @deprecated Use `FlipIDChecksumError` instead */
-export const CheckSumError = FlipIDChecksumError;
-
-/** @deprecated Use `FlipIDNumberOverflowError` instead */
-export const NumberOverflowError = FlipIDNumberOverflowError;
-
-/** @deprecated Use `FlipIDInvalidEncodedStringError` instead */
-export const InvalidEncodedStringError = FlipIDInvalidEncodedStringError;
+export const invalidValue = (message: string): FlipIDError => {
+  return new FlipIDError("INVALID_VALUE", message);
+};

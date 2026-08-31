@@ -1,347 +1,165 @@
-import { Buffer } from "node:buffer";
-import { BufferTransformer, foldKey } from "./transformer.js";
-import { Codecs, type ICodec } from "bufferbase";
-import errors from "./errors.js";
+import type { ICodec } from "bufferbase";
+import { defaultCodec, resolveCodec, type CodecSource } from "./codec.js";
+import { invalidOption } from "./errors.js";
+import { deriveSeed, hashBytes, scramble, unscramble, type Seed } from "./scramble.js";
+import { bigintValue, bytesValue, numberValue, textValue, type ValueCodec } from "./values.js";
 
-/**
- * Options for FlipID constructor.
- */
+/** Largest `check` accepted, and the width of the hash it is taken from. */
+const MAX_CHECK = 4;
+
+/** Six bytes is 48 bits, the widest that always fits in a `number`. */
+const MAX_NUMBER_BYTES = 6;
+
+const MAX_BYTES = 256;
+
+/** Options every FlipID shares. */
 export type FlipIDOptions = {
-  /** Key for encoding/decoding transformation */
+  /** Secret that decides the transformation. The same key always maps a value to the same ID. */
   key: string;
-  /** Fixed block size in bytes. 0 = variable length (default: 4) */
-  blockSize?: number;
-  /** Header size for checksum calculation in bytes (default: 1) */
-  headerSize?: number;
-  /** Enable checksum validation on decode (default: false) */
-  checkSum?: boolean;
-  /** Add single-char prefix salt to output (default: false) */
-  usePrefixSalt?: boolean;
-  /** Custom encoder from bufferbase (default: Base32Crockford) */
-  encoder?: ICodec;
+  /**
+   * Bytes of check data carried in the ID, 0 to 4 (default: 1).
+   *
+   * Each byte lets `decode` reject 255 of every 256 strings that were not
+   * produced by this instance, and lengthens the ID.
+   */
+  check?: number;
+  /** Codec, or the name of one, that turns the block into characters (default: Crockford Base32). */
+  codec?: CodecSource;
+};
+
+type WidthOptions = FlipIDOptions & { signed?: boolean };
+
+const width = (name: string, value: number, max: number): number => {
+  if (!Number.isInteger(value) || value < 1 || value > max) {
+    throw invalidOption(`${name} must be a whole number between 1 and ${max}, got ${value}`);
+  }
+  return value;
 };
 
 /**
- * Reversible ID transformation codec.
- * Encodes numbers, strings, and buffers into obfuscated string identifiers.
+ * A reversible mapping between values of one type and fixed-length strings.
+ *
+ * Build one with `FlipID.number`, `FlipID.bigint`, `FlipID.bytes` or
+ * `FlipID.text`. Every ID it writes is exactly `length` characters long, and
+ * `decode` returns `null` for anything it did not write.
+ *
+ * This obfuscates, it does not protect: anyone holding the key can decode, and
+ * the transformation is not built to withstand analysis.
  *
  * @example
  * ```typescript
- * const flipid = new FlipID({ key: 'secret', blockSize: 8 });
- * const encoded = flipid.encodeNumber(123456);
- * const decoded = flipid.decodeToNumber(encoded); // 123456
+ * const ids = FlipID.number({ key: 'my-app-key', bytes: 4 });
+ * ids.encode(123456);            // 'B7K2QW5Z'
+ * ids.decode('B7K2QW5Z');        // 123456
+ * ids.decode('not-an-id');       // null
  * ```
  */
-export class FlipID {
-  readonly transformer: BufferTransformer;
-  readonly key: string;
-  readonly blockSize: number;
-  readonly headerSize: number;
-  readonly checkSum: boolean;
-  readonly usePrefixSalt: boolean;
-  readonly encoder: ICodec;
+export class FlipID<T> {
+  /** Number of characters in every ID this instance writes. */
+  readonly length: number;
 
-  constructor({
-    key,
-    blockSize = 4,
-    headerSize = 1,
-    checkSum = false,
-    usePrefixSalt = false,
-    encoder = Codecs.base32crockford,
-  }: FlipIDOptions) {
-    if (!key) {
-      throw new errors.FlipIDInvalidArgumentError(`key is required`);
-    }
-    if (blockSize < 0) {
-      throw new errors.FlipIDInvalidArgumentError(
-        `blockSize must be non-negative, got ${blockSize}`,
-      );
-    }
-    if (headerSize < 1 || headerSize > 4) {
-      throw new errors.FlipIDInvalidArgumentError(
-        `headerSize must be between 1 and 4, got ${headerSize}`,
-      );
-    }
-    this.key = key;
-    this.blockSize = blockSize;
-    this.headerSize = headerSize;
-    this.checkSum = checkSum;
-    this.usePrefixSalt = usePrefixSalt;
-    this.encoder = encoder;
+  private readonly value: ValueCodec<T>;
+  private readonly codec: ICodec;
+  private readonly check: number;
+  private readonly blockSize: number;
+  private readonly seed: Seed;
 
-    // Fold key to match the data size to avoid multi-pass XOR in xorBuffer.
-    // When blockSize is 0 (variable length), use key as-is.
-    const keyBuf = Buffer.from(this.key);
-    if (blockSize > 0) {
-      const dataSize = blockSize + headerSize + (usePrefixSalt ? 1 : 0);
-      this.transformer = new BufferTransformer(foldKey(keyBuf, dataSize));
-    } else {
-      this.transformer = new BufferTransformer(keyBuf);
+  private constructor(value: ValueCodec<T>, options: FlipIDOptions) {
+    if (typeof options.key !== "string" || options.key.length === 0) {
+      throw invalidOption("key is required");
     }
+    const check = options.check ?? 1;
+    if (!Number.isInteger(check) || check < 0 || check > MAX_CHECK) {
+      throw invalidOption(`check must be a whole number between 0 and ${MAX_CHECK}, got ${check}`);
+    }
+
+    this.value = value;
+    this.check = check;
+    this.blockSize = value.size + check;
+    this.codec = resolveCodec(options.codec ?? defaultCodec);
+    this.seed = deriveSeed(options.key, this.blockSize);
+    this.length = this.codec.encode(new Uint8Array(this.blockSize).fill(0xff)).length;
   }
 
   /**
-   * Pads buffer to blockSize with leading zeros (right-aligned).
-   * If blockSize is 0, returns the original buffer.
-   * @throws BlockTooLargeError if buffer exceeds blockSize
+   * Encodes a value into an ID of exactly `length` characters.
+   *
+   * @throws {FlipIDError} `INVALID_VALUE` if the value does not fit the configured width.
    */
-  private padBuffer(buffer: Buffer): Buffer {
-    if (this.blockSize === 0) {
-      return buffer;
+  encode(value: T): string {
+    const body = this.value.toBytes(value);
+    const block = new Uint8Array(this.blockSize);
+    block.set(body);
+    if (this.check > 0) {
+      block.set(this.checkBytes(body), this.value.size);
     }
-    if (buffer.length > this.blockSize) {
-      throw new errors.FlipIDBlockTooLargeError(
-        `buffer size (${buffer.length}) > block size (${this.blockSize})`,
-      );
-    }
-    const block = Buffer.alloc(this.blockSize);
-    buffer.copy(block, this.blockSize - buffer.length);
-    return block;
+    const encoded = this.codec.encode(scramble(block, this.seed));
+    return encoded.padStart(this.length, this.codec.chars[0]);
   }
 
   /**
-   * Encodes data into a Flip ID (polymorphic).
-   * @param data - Data to encode (number, bigint, string, or Buffer)
-   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
-   * @returns Encoded string
-   * @throws InvalidDataTypeError if data type is not supported
+   * Decodes an ID, or returns `null` if this instance did not write it.
+   *
+   * With the default single check byte, roughly one in 256 strings of the right
+   * shape slips through and decodes to an arbitrary value. Raise `check` for
+   * longer odds.
    */
-  encode(data: number | bigint | string | Buffer, prefixSalt: string = ""): string {
-    // Convert data to buffer
-    if (data instanceof Buffer) {
-      return this.encodeBuffer(data, prefixSalt);
-    } else if (typeof data === "string") {
-      return this.encodeString(data, prefixSalt);
-    } else if (typeof data === "number" || typeof data === "bigint") {
-      return this.encodeNumber(data, prefixSalt);
-    } else {
-      throw new errors.FlipIDInvalidDataTypeError("Invalid data type");
+  decode(encoded: string): T | null {
+    if (typeof encoded !== "string" || encoded.length === 0) {
+      return null;
     }
-  }
-
-  /**
-   * Encodes a number into a Flip ID.
-   * @param num - Number or bigint to encode
-   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
-   * @returns Encoded string
-   * @throws InvalidDataTypeError if num is not a number or bigint
-   * @throws BlockTooLargeError if encoded value exceeds blockSize
-   */
-  encodeNumber(num: number | bigint, prefixSalt: string = ""): string {
-    if (typeof num !== "number" && typeof num !== "bigint") {
-      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
+    let raw: Uint8Array;
+    try {
+      raw = this.codec.decode(encoded, { size: this.blockSize });
+    } catch {
+      return null;
     }
-    if (num < 0) {
-      throw new errors.FlipIDInvalidArgumentError(
-        `Negative numbers are not supported. Use signedToUnsigned() utility.`,
-      );
-    }
-    let tmp = num.toString(16);
-    tmp = tmp.length % 2 ? "0" + tmp : tmp;
-    const tmpBuf = Buffer.from(tmp, "hex");
-    const block = this.padBuffer(tmpBuf);
-    return this.encodeBuffer(block, prefixSalt);
-  }
-
-  /**
-   * Encodes a bigint into a Flip ID.
-   * Use this method for numbers larger than Number.MAX_SAFE_INTEGER.
-   * @param num - Bigint to encode
-   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
-   * @returns Encoded string
-   * @throws InvalidDataTypeError if num is not a bigint
-   * @throws BlockTooLargeError if encoded value exceeds blockSize
-   */
-  encodeBigInt(num: bigint, prefixSalt: string = ""): string {
-    if (typeof num !== "bigint") {
-      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof num}`);
-    }
-    if (num < 0n) {
-      throw new errors.FlipIDInvalidArgumentError(
-        `Negative numbers are not supported. Use signedToUnsignedBigInt() utility.`,
-      );
-    }
-    let tmp = num.toString(16);
-    tmp = tmp.length % 2 ? "0" + tmp : tmp;
-    const tmpBuf = Buffer.from(tmp, "hex");
-    const block = this.padBuffer(tmpBuf);
-    return this.encodeBuffer(block, prefixSalt);
-  }
-
-  /**
-   * Encodes a string into a Flip ID.
-   * @param str - String to encode (UTF-8)
-   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
-   * @returns Encoded string
-   * @throws InvalidDataTypeError if str is not a string
-   * @throws BlockTooLargeError if encoded value exceeds blockSize
-   */
-  encodeString(str: string, prefixSalt: string = ""): string {
-    if (typeof str !== "string") {
-      throw new errors.FlipIDInvalidDataTypeError(`Invalid data type: ${typeof str}`);
-    }
-    const tmpBuf = Buffer.from(str, "utf8");
-    const block = this.padBuffer(tmpBuf);
-    return this.encodeBuffer(block, prefixSalt);
-  }
-
-  /**
-   * Encodes a buffer into a Flip ID.
-   * @param buffer - Buffer to encode
-   * @param prefixSalt - Single character prefix salt (required if usePrefixSalt is true)
-   * @returns Encoded string
-   * @throws BlockTooLargeError if buffer exceeds blockSize
-   * @throws InvalidArgumentError if prefixSalt is invalid
-   */
-  encodeBuffer(buffer: Buffer, prefixSalt: string = ""): string {
-    const salt = this.usePrefixSalt ? prefixSalt : "";
-    if (this.usePrefixSalt && prefixSalt.length !== 1) {
-      throw new errors.FlipIDInvalidArgumentError(
-        `usePrefixSalt is true but prefixSalt is not a single character`,
-      );
-    } else if (!this.usePrefixSalt && prefixSalt !== "") {
-      throw new errors.FlipIDInvalidArgumentError(
-        `usePrefixSalt is false but prefixSalt is not empty`,
-      );
-    }
-    const block = this.padBuffer(buffer);
-    const sumVal = block.reduce((prev, curr) => {
-      return (prev + curr) % 256 ** this.headerSize;
-    }, 0);
-    const newSeedHex = ("00".repeat(this.headerSize) + sumVal.toString(16)).slice(
-      -this.headerSize * 2,
-    );
-    const iv = Buffer.concat([Buffer.from(salt), Buffer.from(newSeedHex, "hex")]);
-    const encrypted = this.transformer.encrypt(
-      Buffer.concat([this.transformer.encrypt(block, iv), iv]),
-    );
-    const checkSumBuf = this.checkSum
-      ? Buffer.from([
-          encrypted.reduce((prev, curr) => {
-            return prev + curr;
-          }) % 256,
-        ])
-      : Buffer.alloc(0);
-    const encoded = this.encoder.encode(Buffer.concat([encrypted, checkSumBuf]));
-    return this.usePrefixSalt ? salt + encoded : encoded;
-  }
-
-  /**
-   * Decodes a Flip ID and returns the original data as a number.
-   * @param encoded - Encoded string to decode
-   * @returns Decoded number
-   * @throws NumberOverflowError if decoded value exceeds Number.MAX_SAFE_INTEGER
-   * @throws InvalidEncodedStringError if encoded string is invalid
-   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
-   */
-  decodeToNumber(encoded: string): number {
-    const decryptedBlock = this.decodeToBuffer(encoded);
-    let num = 0;
-    for (let i = 0; i < decryptedBlock.length; i++) {
-      num = num * 256 + decryptedBlock[i];
-      if (num > Number.MAX_SAFE_INTEGER) {
-        throw new errors.FlipIDNumberOverflowError(
-          `Decoded value exceeds Number.MAX_SAFE_INTEGER. Use decodeToBigInt() instead.`,
-        );
+    const block = unscramble(raw, this.seed);
+    const body = block.slice(0, this.value.size);
+    if (this.check > 0) {
+      const expected = this.checkBytes(body);
+      for (let i = 0; i < this.check; i++) {
+        if (block[this.value.size + i] !== expected[i]) {
+          return null;
+        }
       }
     }
-    return num;
+    try {
+      return this.value.fromBytes(body);
+    } catch {
+      return null;
+    }
   }
 
-  /**
-   * Decodes a Flip ID and returns the original data as a bigint.
-   * Use this method for values that may exceed Number.MAX_SAFE_INTEGER.
-   * @param encoded - Encoded string to decode
-   * @returns Decoded bigint
-   * @throws InvalidEncodedStringError if encoded string is invalid
-   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
-   */
-  decodeToBigInt(encoded: string): bigint {
-    const decryptedBlock = this.decodeToBuffer(encoded);
-    let num = 0n;
-    for (let i = 0; i < decryptedBlock.length; i++) {
-      num = num * 256n + BigInt(decryptedBlock[i]);
+  private checkBytes(body: Uint8Array): Uint8Array {
+    let hash = hashBytes(body);
+    const bytes = new Uint8Array(this.check);
+    for (let i = this.check - 1; i >= 0; i--) {
+      bytes[i] = hash & 0xff;
+      hash = hash >>> 8;
     }
-    return num;
+    return bytes;
   }
 
-  /**
-   * Decodes a Flip ID and returns the original data as a string.
-   * @param encoded - Encoded string to decode
-   * @returns Decoded string (UTF-8)
-   * @throws InvalidEncodedStringError if encoded string is invalid
-   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
-   */
-  decodeToString(encoded: string): string {
-    const decryptedBlock = this.decodeToBuffer(encoded);
-    const plaintext = decryptedBlock.toString("utf8");
-    return plaintext;
+  /** Whole numbers stored in `bytes` bytes, up to 6. Set `signed` to allow negatives. */
+  static number(options: WidthOptions & { bytes: number }): FlipID<number> {
+    const size = width("bytes", options.bytes, MAX_NUMBER_BYTES);
+    return new FlipID(numberValue(size, options.signed ?? false), options);
   }
 
-  /**
-   * Decodes a Flip ID and returns the original data as a Buffer.
-   * @param encoded - Encoded string to decode
-   * @returns Decoded buffer
-   * @throws InvalidEncodedStringError if encoded string is empty or contains invalid characters
-   * @throws CheckSumError if checksum validation fails (when checkSum is enabled)
-   */
-  decodeToBuffer(encoded: string): Buffer {
-    if (encoded.length === 0) {
-      throw new errors.FlipIDInvalidEncodedStringError("Encoded string cannot be empty");
-    }
+  /** Whole numbers of any width, as `bigint`. Set `signed` to allow negatives. */
+  static bigint(options: WidthOptions & { bytes: number }): FlipID<bigint> {
+    const size = width("bytes", options.bytes, MAX_BYTES);
+    return new FlipID(bigintValue(size, options.signed ?? false), options);
+  }
 
-    let saltSize = 0;
-    if (this.usePrefixSalt) {
-      saltSize = 1;
-      encoded = encoded.slice(1);
-    }
+  /** Byte strings of exactly `size` bytes, such as a 16-byte UUID. */
+  static bytes(options: FlipIDOptions & { size: number }): FlipID<Uint8Array> {
+    return new FlipID(bytesValue(width("size", options.size, MAX_BYTES)), options);
+  }
 
-    if (!this.encoder.validate(encoded)) {
-      throw new errors.FlipIDInvalidEncodedStringError(
-        "Encoded string contains invalid characters",
-      );
-    }
-
-    const checkSumSize = this.checkSum ? 1 : 0;
-    const expectedSize =
-      this.blockSize > 0 ? saltSize + this.headerSize + this.blockSize + checkSumSize : undefined;
-    const decodedBuf = this.encoder.decode(
-      encoded,
-      expectedSize !== undefined ? { size: expectedSize } : undefined,
-    );
-
-    if (this.checkSum) {
-      const checkSumByte = decodedBuf.subarray(-1)[0];
-      const checkSum =
-        decodedBuf.subarray(0, -1).reduce((prev, curr) => {
-          return prev + curr;
-        }, 0) % 256;
-      if (checkSum !== checkSumByte) {
-        throw new errors.FlipIDChecksumError("Checksum mismatch");
-      }
-    }
-    const encryptedBuf = decodedBuf.subarray(0, this.checkSum ? -1 : undefined);
-
-    const concatBuf = this.transformer.decrypt(encryptedBuf);
-    const blockSize =
-      this.blockSize > 0 ? this.blockSize : concatBuf.length - saltSize - this.headerSize;
-
-    const iv = Buffer.alloc(saltSize + this.headerSize);
-    concatBuf.subarray(blockSize).copy(iv);
-    const encryptedBlock = Buffer.alloc(blockSize);
-    concatBuf.subarray(0, blockSize).copy(encryptedBlock);
-
-    const decryptedBlock = this.transformer.decrypt(encryptedBlock, iv);
-    return decryptedBlock;
+  /** UTF-8 text of up to `size` bytes. */
+  static text(options: FlipIDOptions & { size: number }): FlipID<string> {
+    return new FlipID(textValue(width("size", options.size, MAX_BYTES)), options);
   }
 }
-
-/**
- * @deprecated Use `FlipID` instead. Will be removed in a future version.
- */
-export const FlipIDGenerator = FlipID;
-
-/**
- * @deprecated Use `FlipIDOptions` instead. Will be removed in a future version.
- */
-export type FlipIDGeneratorOptions = FlipIDOptions;
