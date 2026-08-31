@@ -18,7 +18,7 @@ FlipID is an ID encoder, not a cryptographic library.
 
 - Does NOT provide security or confidentiality
 - Anyone with the key can decode; anyone determined can likely reverse-engineer
-- The transformation is a keyed byte shuffle, not a cipher
+- The transformation is a keyed, reversible byte mix, not a cipher
 
 **Use it for:** hiding sequential database IDs in URLs (`/users/1` → `/users/B9P2V83A`), making IDs non-enumerable for casual observers, invite codes, short links.
 
