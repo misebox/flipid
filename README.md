@@ -5,7 +5,7 @@ FlipID maps numbers, byte strings and short text to fixed-length, unguessable-lo
 ```typescript
 import { FlipID } from 'flipid';
 
-const ids = FlipID.number({ key: 'my-app-key', bytes: 4 });
+const ids = FlipID.number({ key: 'my-app-key', size: 4 });
 
 ids.encode(123456);      // 'B9P2V83A'
 ids.decode('B9P2V83A');  // 123456
@@ -37,18 +37,18 @@ bun add flipid
 Pick the factory that matches the value you hold. Each one gives you an object with `encode`, `decode` and `length`.
 
 ```typescript
-FlipID.number({ key, bytes: 4 })              // number, up to 6 bytes
-FlipID.bigint({ key, bytes: 8 })              // bigint, any width
-FlipID.bytes ({ key, size: 16 })              // Uint8Array of exactly 16 bytes
-FlipID.text  ({ key, size: 8 })               // UTF-8 string of up to 8 bytes
+FlipID.number({ key, size: 4 })   // number, up to 6 bytes
+FlipID.bigint({ key, size: 8 })   // bigint, any width
+FlipID.bytes ({ key, size: 16 })  // Uint8Array of exactly 16 bytes
+FlipID.text  ({ key, size: 8 })   // UTF-8 string of up to 8 bytes
 ```
 
-`number` is capped at 6 bytes because that is the widest value that always fits in a JavaScript `number`. For anything wider, use `bigint`.
+`number` is capped at a size of 6 bytes because that is the widest value that always fits in a JavaScript `number`. For anything wider, use `bigint`.
 
 Negative numbers need `signed: true`, which halves the positive range:
 
 ```typescript
-const ids = FlipID.number({ key, bytes: 4, signed: true });
+const ids = FlipID.number({ key, size: 4, signed: true });
 ids.encode(-1);  // '5E0TVAX2'
 ids.decode('5E0TVAX2');  // -1
 ```
@@ -57,7 +57,7 @@ ids.decode('5E0TVAX2');  // -1
 
 Every ID an instance writes is exactly `ids.length` characters. The length depends on the width and the alphabet, never on the value.
 
-| bytes | max value (unsigned) | Crockford | base58 | base64url |
+| size | max value (unsigned) | Crockford | base58 | base64url |
 |-------|----------------------|-----------|--------|-----------|
 | 1  | 255                 | 4  | 3  | 3  |
 | 2  | 65,535              | 5  | 5  | 4  |
@@ -68,9 +68,9 @@ Every ID an instance writes is exactly `ids.length` characters. The length depen
 | 8  | 2⁶⁴-1               | 15 | 13 | 12 |
 | 16 | 2¹²⁸-1 (a UUID)     | 28 | 24 | 23 |
 
-The table assumes the default `check: 1`. Each extra check byte adds about 1.6 Crockford characters.
+The table assumes the default `checkBytes: 1`. Each extra check byte adds about 1.6 Crockford characters.
 
-Pick the width from the largest value you will ever store, and keep it. Changing `key`, `bytes`, `check` or the codec changes every ID.
+Pick the width from the largest value you will ever store, and keep it. Changing `key`, `size`, `checkBytes` or the codec changes every ID.
 
 ## Invalid IDs
 
@@ -86,7 +86,7 @@ if (userId === null) {
 
 Detection is probabilistic. Each check byte lets `decode` reject 255 of every 256 strings that reach it; the rest decode to an arbitrary value of the right shape.
 
-| check | strings rejected | length at `bytes: 4` |
+| checkBytes | strings rejected | length at `size: 4` |
 |-------|------------------|---------------------|
 | 0 | none — every string of the right length decodes | 7 |
 | 1 (default) | ~255 of 256 | 8 |
@@ -94,7 +94,7 @@ Detection is probabilistic. Each check byte lets `decode` reject 255 of every 25
 | 3 | all but ~1 in 16.7 million | 12 |
 | 4 | all but ~1 in 4.3 billion | 13 |
 
-Use `check: 2` or more when an ID that silently resolves to the wrong record would be a problem.
+Use `checkBytes: 2` or more when an ID that silently resolves to the wrong record would be a problem.
 
 ## Alphabets
 
@@ -107,9 +107,9 @@ ids.decode('b9p2-v83a');  // 123456
 Pass `codec` to choose another alphabet — by name, or as a codec from `bufferbase`:
 
 ```typescript
-FlipID.number({ key, bytes: 4, codec: 'base58' }).encode(123456);     // 'BChDhA1'  — no 0, O, I, l
-FlipID.number({ key, bytes: 4, codec: 'base64url' }).encode(123456);  // 'WmwtoGo'  — shortest
-FlipID.number({ key, bytes: 4, codec: 'base32hex' }).encode(123456);  // 'B9M2R83A'
+FlipID.number({ key, size: 4, codec: 'base58' }).encode(123456);     // 'BChDhA1'  — no 0, O, I, l
+FlipID.number({ key, size: 4, codec: 'base64url' }).encode(123456);  // 'WmwtoGo'  — shortest
+FlipID.number({ key, size: 4, codec: 'base32hex' }).encode(123456);  // 'B9M2R83A'
 ```
 
 `Codecs`, `createCodec` and `ICodec` are re-exported from [bufferbase](https://www.npmjs.com/package/bufferbase), so a custom alphabet needs no second import.
@@ -135,13 +135,13 @@ The transformation uses 32-bit integer arithmetic only, so the same key and valu
 
 | 0.5 | 1.0 |
 |-----|-----|
-| `new FlipID({ key, blockSize: 4 })` | `FlipID.number({ key, bytes: 4 })` |
+| `new FlipID({ key, blockSize: 4 })` | `FlipID.number({ key, size: 4 })` |
 | `encodeNumber` / `encodeBigInt` / `encodeString` / `encodeBuffer` | `encode`, on the instance that matches the type |
 | `decodeToNumber` / `decodeToBigInt` / `decodeToString` / `decodeToBuffer` | `decode` |
 | throws six error classes | returns `null`, or throws `FlipIDError` |
 | `signedToUnsigned(-1)` before encoding | `signed: true` |
 | `Buffer` | `Uint8Array` |
-| `headerSize`, `usePrefixSalt`, `checkSum` | `check` |
+| `headerSize`, `usePrefixSalt`, `checkSum` | `checkBytes` |
 | `FlipIDGenerator` and the old error names | removed |
 
 Output length is now genuinely fixed. In 0.5 it varied with the value: about 2.8% of `blockSize: 4` IDs came out a character short.

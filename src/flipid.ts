@@ -4,8 +4,8 @@ import { invalidOption } from "./errors.js";
 import { deriveSeed, hashBytes, scramble, unscramble, type Seed } from "./scramble.js";
 import { bigintValue, bytesValue, numberValue, textValue, type ValueCodec } from "./values.js";
 
-/** Largest `check` accepted, and the width of the hash it is taken from. */
-const MAX_CHECK = 4;
+/** Largest `checkBytes` accepted, and the width of the hash it is taken from. */
+const MAX_CHECK_BYTES = 4;
 
 /** Six bytes is 48 bits, the widest that always fits in a `number`. */
 const MAX_NUMBER_BYTES = 6;
@@ -22,7 +22,7 @@ export type FlipIDOptions = {
    * Each byte lets `decode` reject 255 of every 256 strings that were not
    * produced by this instance, and lengthens the ID.
    */
-  check?: number;
+  checkBytes?: number;
   /** Codec, or the name of one, that turns the block into characters (default: Crockford Base32). */
   codec?: CodecSource;
 };
@@ -48,7 +48,7 @@ const width = (name: string, value: number, max: number): number => {
  *
  * @example
  * ```typescript
- * const ids = FlipID.number({ key: 'my-app-key', bytes: 4 });
+ * const ids = FlipID.number({ key: 'my-app-key', size: 4 });
  * ids.encode(123456);            // 'B9P2V83A'
  * ids.decode('B9P2V83A');        // 123456
  * ids.decode('not-an-id');       // null
@@ -60,7 +60,7 @@ export class FlipID<T> {
 
   private readonly value: ValueCodec<T>;
   private readonly codec: ICodec;
-  private readonly check: number;
+  private readonly checkBytes: number;
   private readonly blockSize: number;
   private readonly seed: Seed;
 
@@ -68,14 +68,14 @@ export class FlipID<T> {
     if (typeof options.key !== "string" || options.key.length === 0) {
       throw invalidOption("key is required");
     }
-    const check = options.check ?? 1;
-    if (!Number.isInteger(check) || check < 0 || check > MAX_CHECK) {
-      throw invalidOption(`check must be a whole number between 0 and ${MAX_CHECK}, got ${check}`);
+    const checkBytes = options.checkBytes ?? 1;
+    if (!Number.isInteger(checkBytes) || checkBytes < 0 || checkBytes > MAX_CHECK_BYTES) {
+      throw invalidOption(`check must be a whole number between 0 and ${MAX_CHECK_BYTES}, got ${checkBytes}`);
     }
 
     this.value = value;
-    this.check = check;
-    this.blockSize = value.size + check;
+    this.checkBytes = checkBytes;
+    this.blockSize = value.size + checkBytes;
     this.codec = resolveCodec(options.codec ?? defaultCodec);
     this.seed = deriveSeed(options.key, this.blockSize);
     this.length = this.codec.encode(new Uint8Array(this.blockSize).fill(0xff)).length;
@@ -90,8 +90,8 @@ export class FlipID<T> {
     const body = this.value.toBytes(value);
     const block = new Uint8Array(this.blockSize);
     block.set(body);
-    if (this.check > 0) {
-      block.set(this.checkBytes(body), this.value.size);
+    if (this.checkBytes > 0) {
+      block.set(this.deriveCheck(body), this.value.size);
     }
     const encoded = this.codec.encode(scramble(block, this.seed));
     return encoded.padStart(this.length, this.codec.alphabet[0]);
@@ -101,7 +101,7 @@ export class FlipID<T> {
    * Decodes an ID, or returns `null` if this instance did not write it.
    *
    * With the default single check byte, roughly one in 256 strings of the right
-   * shape slips through and decodes to an arbitrary value. Raise `check` for
+   * shape slips through and decodes to an arbitrary value. Raise `checkBytes` for
    * longer odds.
    */
   decode(encoded: string): T | null {
@@ -116,9 +116,9 @@ export class FlipID<T> {
     }
     const block = unscramble(raw, this.seed);
     const body = block.slice(0, this.value.size);
-    if (this.check > 0) {
-      const expected = this.checkBytes(body);
-      for (let i = 0; i < this.check; i++) {
+    if (this.checkBytes > 0) {
+      const expected = this.deriveCheck(body);
+      for (let i = 0; i < this.checkBytes; i++) {
         if (block[this.value.size + i] !== expected[i]) {
           return null;
         }
@@ -131,10 +131,10 @@ export class FlipID<T> {
     }
   }
 
-  private checkBytes(body: Uint8Array): Uint8Array {
+  private deriveCheck(body: Uint8Array): Uint8Array {
     let hash = hashBytes(body);
-    const bytes = new Uint8Array(this.check);
-    for (let i = this.check - 1; i >= 0; i--) {
+    const bytes = new Uint8Array(this.checkBytes);
+    for (let i = this.checkBytes - 1; i >= 0; i--) {
       bytes[i] = hash & 0xff;
       hash = hash >>> 8;
     }
@@ -142,14 +142,14 @@ export class FlipID<T> {
   }
 
   /** Whole numbers stored in `bytes` bytes, up to 6. Set `signed` to allow negatives. */
-  static number(options: WidthOptions & { bytes: number }): FlipID<number> {
-    const size = width("bytes", options.bytes, MAX_NUMBER_BYTES);
+  static number(options: WidthOptions & { size: number }): FlipID<number> {
+    const size = width("size", options.size, MAX_NUMBER_BYTES);
     return new FlipID(numberValue({ size, signed: options.signed ?? false }), options);
   }
 
   /** Whole numbers of any width, as `bigint`. Set `signed` to allow negatives. */
-  static bigint(options: WidthOptions & { bytes: number }): FlipID<bigint> {
-    const size = width("bytes", options.bytes, MAX_BYTES);
+  static bigint(options: WidthOptions & { size: number }): FlipID<bigint> {
+    const size = width("size", options.size, MAX_BYTES);
     return new FlipID(bigintValue({ size, signed: options.signed ?? false }), options);
   }
 

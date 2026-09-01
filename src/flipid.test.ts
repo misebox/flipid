@@ -6,7 +6,7 @@ import { FlipIDError } from "./errors.js";
 const key = "my-app-key";
 
 describe("FlipID.number", () => {
-  const ids = FlipID.number({ key, bytes: 4 });
+  const ids = FlipID.number({ key, size: 4 });
 
   it("round-trips", () => {
     for (const value of [0, 1, 2, 255, 256, 123456, 4294967295]) {
@@ -61,7 +61,7 @@ describe("FlipID.number", () => {
   });
 
   it("carries negative numbers when signed", () => {
-    const signed = FlipID.number({ key, bytes: 4, signed: true });
+    const signed = FlipID.number({ key, size: 4, signed: true });
     for (const value of [-2147483648, -1, 0, 1, 2147483647]) {
       expect(signed.decode(signed.encode(value))).toBe(value);
     }
@@ -72,13 +72,13 @@ describe("FlipID.number", () => {
 
   it("refuses widths a number cannot hold", () => {
     expect(() => {
-      return FlipID.number({ key, bytes: 7 });
+      return FlipID.number({ key, size: 7 });
     }).toThrow(FlipIDError);
   });
 });
 
 describe("decode", () => {
-  const ids = FlipID.number({ key, bytes: 4 });
+  const ids = FlipID.number({ key, size: 4 });
 
   it("returns null for strings it did not write", () => {
     for (const input of ["", "not-an-id", "!!!!!!!!", "0123456789012345"]) {
@@ -103,7 +103,7 @@ describe("decode", () => {
   });
 
   it("rejects ids written with another key", () => {
-    const other = FlipID.number({ key: "another-key", bytes: 4 });
+    const other = FlipID.number({ key: "another-key", size: 4 });
     const mismatches = [...Array(500).keys()].filter((value) => {
       return ids.decode(other.encode(value)) === null;
     });
@@ -122,26 +122,26 @@ describe("decode", () => {
   });
 
   it("takes wider check data for longer odds", () => {
-    const wide = FlipID.number({ key, bytes: 4, check: 2 });
+    const wide = FlipID.number({ key, size: 4, checkBytes: 2 });
     expect(wide.length).toBeGreaterThan(ids.length);
     expect(wide.decode(wide.encode(99))).toBe(99);
   });
 
   it("carries no check data when check is 0", () => {
-    const bare = FlipID.number({ key, bytes: 2, check: 0 });
+    const bare = FlipID.number({ key, size: 2, checkBytes: 0 });
     expect(bare.length).toBe(4);
     expect(bare.decode(bare.encode(65535))).toBe(65535);
   });
 
-  it("refuses a check width it cannot fill", () => {
+  it("refuses a checkBytes width it cannot fill", () => {
     expect(() => {
-      return FlipID.number({ key, bytes: 4, check: 5 });
+      return FlipID.number({ key, size: 4, checkBytes: 5 });
     }).toThrow(FlipIDError);
   });
 });
 
 describe("FlipID.bigint", () => {
-  const ids = FlipID.bigint({ key, bytes: 8 });
+  const ids = FlipID.bigint({ key, size: 8 });
 
   it("round-trips the whole 64-bit range", () => {
     for (const value of [0n, 1n, 2n ** 32n, 2n ** 63n, 2n ** 64n - 1n]) {
@@ -156,7 +156,7 @@ describe("FlipID.bigint", () => {
   });
 
   it("carries negative numbers when signed", () => {
-    const signed = FlipID.bigint({ key, bytes: 8, signed: true });
+    const signed = FlipID.bigint({ key, size: 8, signed: true });
     for (const value of [-(2n ** 63n), -1n, 0n, 2n ** 63n - 1n]) {
       expect(signed.decode(signed.encode(value))).toBe(value);
     }
@@ -213,7 +213,7 @@ describe("FlipID.text", () => {
 
 describe("codecs", () => {
   it("keeps ids fixed-length on a radix alphabet", () => {
-    const ids = FlipID.number({ key, bytes: 4, codec: "base58" });
+    const ids = FlipID.number({ key, size: 4, codec: "base58" });
     for (let value = 0; value < 20000; value++) {
       expect(ids.encode(value)).toHaveLength(ids.length);
     }
@@ -221,14 +221,14 @@ describe("codecs", () => {
   });
 
   it("accepts a codec instance", () => {
-    const ids = FlipID.number({ key, bytes: 4, codec: Codecs.base64url });
+    const ids = FlipID.number({ key, size: 4, codec: Codecs.base64url });
     expect(ids.decode(ids.encode(123456))).toBe(123456);
   });
 
   it("accepts a raw codec spec", () => {
     const ids = FlipID.number({
       key,
-      bytes: 2,
+      size: 2,
       codec: { alphabet: "01", algorithm: "radix" },
     });
     expect(ids.decode(ids.encode(1000))).toBe(1000);
@@ -236,7 +236,7 @@ describe("codecs", () => {
 
   it("refuses an unknown base name", () => {
     expect(() => {
-      return FlipID.number({ key, bytes: 4, codec: "base99" as "base58" });
+      return FlipID.number({ key, size: 4, codec: "base99" as "base58" });
     }).toThrow(FlipIDError);
   });
 });
@@ -244,13 +244,13 @@ describe("codecs", () => {
 describe("options", () => {
   it("requires a key", () => {
     expect(() => {
-      return FlipID.number({ key: "", bytes: 4 });
+      return FlipID.number({ key: "", size: 4 });
     }).toThrow(FlipIDError);
   });
 
   it("reports INVALID_OPTION on the error", () => {
     try {
-      FlipID.number({ key: "", bytes: 4 });
+      FlipID.number({ key: "", size: 4 });
       expect.unreachable();
     } catch (error) {
       expect((error as FlipIDError).code).toBe("INVALID_OPTION");
@@ -261,8 +261,8 @@ describe("options", () => {
 describe("type guards", () => {
   it("rejects values of the wrong type", () => {
     const cases: [FlipID<never>, unknown][] = [
-      [FlipID.number({ key, bytes: 4 }) as never, "1"],
-      [FlipID.bigint({ key, bytes: 8 }) as never, 1],
+      [FlipID.number({ key, size: 4 }) as never, "1"],
+      [FlipID.bigint({ key, size: 8 }) as never, 1],
       [FlipID.bytes({ key, size: 4 }) as never, "abcd"],
       [FlipID.text({ key, size: 4 }) as never, 1],
     ];
@@ -282,7 +282,7 @@ describe("type guards", () => {
 
 describe("text decoding", () => {
   it("returns null when the bytes are not valid UTF-8", () => {
-    const ids = FlipID.text({ key, size: 4, check: 0 });
+    const ids = FlipID.text({ key, size: 4, checkBytes: 0 });
     const chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     let rejected = 0;
     for (let i = 0; i < 2000; i++) {
