@@ -5,7 +5,7 @@
     "": {
       "name": "flipid",
       "dependencies": {
-        "bufferbase": "^3.0.1",
+        "bufferbase": "^3.1.0",
       },
       "devDependencies": {
         "@types/node": "^20.19.25",
@@ -253,7 +253,7 @@
 
     "brace-expansion": ["brace-expansion@2.0.2", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ=="],
 
-    "bufferbase": ["bufferbase@3.0.1", "", {}, "sha512-cSa2ZBBPuqlx8Y3VvsHoUUdd0hsNJM6PcHMMdNusiBF2ELa9GPy6iZrsh+KU88MCYTmuQvnvJRvWJFWxaz6HMQ=="],
+    "bufferbase": ["bufferbase@3.1.0", "", {}, "sha512-0vuX6wIZ5k0NlDuUC196PPA9q+iinhxttOoQgzjTzDFK27ZXwyDjJB2kQgoHKf8rQ1uVA6VF7wqGldNAzcwcgw=="],
 
     "cac": ["cac@6.7.14", "", {}, "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ=="],
 

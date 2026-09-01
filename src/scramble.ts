@@ -54,8 +54,16 @@ export const deriveSeed = (key: string, blockSize: number): Seed => {
   return { a, b };
 };
 
+/** What decides the byte mixed into one position. */
+type RoundInput = {
+  readonly seed: number;
+  readonly round: number;
+  readonly index: number;
+  readonly neighbour: number;
+};
+
 /** The byte mixed into position `index` given its neighbour's current value. */
-const roundByte = (seed: number, round: number, index: number, neighbour: number): number => {
+const roundByte = ({ seed, round, index, neighbour }: RoundInput): number => {
   const tag = Math.imul(round + 1, 0x9e3779b9) ^ Math.imul(index + 1, 0x85ebca6b) ^ neighbour;
   return mix(seed ^ mix(tag)) & 0xff;
 };
@@ -72,7 +80,7 @@ const TAIL_TAG = 0x165667b1;
 const addForward = (block: Uint8Array, seed: Seed, round: number): void => {
   let previous = edgeByte(seed.b, round, HEAD_TAG);
   for (let i = 0; i < block.length; i++) {
-    block[i] = (block[i] + roundByte(seed.a, round, i, previous)) & 0xff;
+    block[i] = (block[i] + roundByte({ seed: seed.a, round, index: i, neighbour: previous })) & 0xff;
     previous = block[i];
   }
 };
@@ -81,7 +89,7 @@ const subtractForward = (block: Uint8Array, seed: Seed, round: number): void => 
   const head = edgeByte(seed.b, round, HEAD_TAG);
   for (let i = block.length - 1; i >= 0; i--) {
     const previous = i === 0 ? head : block[i - 1];
-    block[i] = (block[i] - roundByte(seed.a, round, i, previous)) & 0xff;
+    block[i] = (block[i] - roundByte({ seed: seed.a, round, index: i, neighbour: previous })) & 0xff;
   }
 };
 
@@ -89,7 +97,7 @@ const subtractForward = (block: Uint8Array, seed: Seed, round: number): void => 
 const xorBackward = (block: Uint8Array, seed: Seed, round: number): void => {
   let next = edgeByte(seed.a, round, TAIL_TAG);
   for (let i = block.length - 1; i >= 0; i--) {
-    block[i] = block[i] ^ roundByte(seed.b, round, i, next);
+    block[i] = block[i] ^ roundByte({ seed: seed.b, round, index: i, neighbour: next });
     next = block[i];
   }
 };
@@ -98,7 +106,7 @@ const unxorBackward = (block: Uint8Array, seed: Seed, round: number): void => {
   const tail = edgeByte(seed.a, round, TAIL_TAG);
   for (let i = 0; i < block.length; i++) {
     const next = i === block.length - 1 ? tail : block[i + 1];
-    block[i] = block[i] ^ roundByte(seed.b, round, i, next);
+    block[i] = block[i] ^ roundByte({ seed: seed.b, round, index: i, neighbour: next });
   }
 };
 
