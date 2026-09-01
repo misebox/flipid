@@ -68,6 +68,6 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "bufferbase": "^3.0.1"
+    "bufferbase": "^3.1.0"
   }
 }

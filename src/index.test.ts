@@ -7,7 +7,7 @@ describe("index", () => {
     expect(typeof FlipIDError).toBe("function");
     expect(defaultCodec.algorithm).toBe("block");
     expect(typeof createCodec).toBe("function");
-    expect(Codecs.base58.chars).toHaveLength(58);
+    expect(Codecs.base58.alphabet).toHaveLength(58);
   });
 
   it("works end to end through the entry point", () => {

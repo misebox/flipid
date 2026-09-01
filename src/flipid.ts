@@ -94,7 +94,7 @@ export class FlipID<T> {
       block.set(this.checkBytes(body), this.value.size);
     }
     const encoded = this.codec.encode(scramble(block, this.seed));
-    return encoded.padStart(this.length, this.codec.chars[0]);
+    return encoded.padStart(this.length, this.codec.alphabet[0]);
   }
 
   /**

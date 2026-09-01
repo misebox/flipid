@@ -87,7 +87,7 @@ describe("decode", () => {
   });
 
   it("rejects almost every random string of the right shape", () => {
-    const chars = Codecs.base32crockford.chars;
+    const chars = Codecs.base32crockford.alphabet;
     let accepted = 0;
     const trials = 20000;
     for (let i = 0; i < trials; i++) {
