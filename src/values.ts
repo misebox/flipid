@@ -30,8 +30,14 @@ const readBigEndian = (bytes: Uint8Array): number => {
   return value;
 };
 
+/** How wide a whole number is, and whether it carries a sign. */
+export type IntegerSpec = {
+  readonly size: number;
+  readonly signed: boolean;
+};
+
 /** Whole numbers of up to 6 bytes, which stay inside `Number.MAX_SAFE_INTEGER`. */
-export const numberValue = (size: number, signed: boolean): ValueCodec<number> => {
+export const numberValue = ({ size, signed }: IntegerSpec): ValueCodec<number> => {
   const span = 2 ** (size * 8);
   const min = signed ? -(span / 2) : 0;
   const max = signed ? span / 2 - 1 : span - 1;
@@ -55,7 +61,7 @@ export const numberValue = (size: number, signed: boolean): ValueCodec<number> =
 };
 
 /** Whole numbers of any width, as `bigint`. */
-export const bigintValue = (size: number, signed: boolean): ValueCodec<bigint> => {
+export const bigintValue = ({ size, signed }: IntegerSpec): ValueCodec<bigint> => {
   const span = 1n << BigInt(size * 8);
   const min = signed ? -(span / 2n) : 0n;
   const max = signed ? span / 2n - 1n : span - 1n;

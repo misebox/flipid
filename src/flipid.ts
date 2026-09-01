@@ -49,8 +49,8 @@ const width = (name: string, value: number, max: number): number => {
  * @example
  * ```typescript
  * const ids = FlipID.number({ key: 'my-app-key', bytes: 4 });
- * ids.encode(123456);            // 'B7K2QW5Z'
- * ids.decode('B7K2QW5Z');        // 123456
+ * ids.encode(123456);            // 'B9P2V83A'
+ * ids.decode('B9P2V83A');        // 123456
  * ids.decode('not-an-id');       // null
  * ```
  */
@@ -144,13 +144,13 @@ export class FlipID<T> {
   /** Whole numbers stored in `bytes` bytes, up to 6. Set `signed` to allow negatives. */
   static number(options: WidthOptions & { bytes: number }): FlipID<number> {
     const size = width("bytes", options.bytes, MAX_NUMBER_BYTES);
-    return new FlipID(numberValue(size, options.signed ?? false), options);
+    return new FlipID(numberValue({ size, signed: options.signed ?? false }), options);
   }
 
   /** Whole numbers of any width, as `bigint`. Set `signed` to allow negatives. */
   static bigint(options: WidthOptions & { bytes: number }): FlipID<bigint> {
     const size = width("bytes", options.bytes, MAX_BYTES);
-    return new FlipID(bigintValue(size, options.signed ?? false), options);
+    return new FlipID(bigintValue({ size, signed: options.signed ?? false }), options);
   }
 
   /** Byte strings of exactly `size` bytes, such as a 16-byte UUID. */
