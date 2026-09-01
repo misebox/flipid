@@ -11,7 +11,7 @@ describe("index", () => {
   });
 
   it("works end to end through the entry point", () => {
-    const ids = FlipID.number({ key: "k", size: 4 });
+    const ids = FlipID.number({ key: "k", sizeBytes: 4 });
     expect(ids.decode(ids.encode(42))).toBe(42);
   });
 });

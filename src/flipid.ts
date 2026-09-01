@@ -48,7 +48,7 @@ const width = (name: string, value: number, max: number): number => {
  *
  * @example
  * ```typescript
- * const ids = FlipID.number({ key: 'my-app-key', size: 4 });
+ * const ids = FlipID.number({ key: 'my-app-key', sizeBytes: 4 });
  * ids.encode(123456);            // 'B9P2V83A'
  * ids.decode('B9P2V83A');        // 123456
  * ids.decode('not-an-id');       // null
@@ -75,7 +75,7 @@ export class FlipID<T> {
 
     this.value = value;
     this.checkBytes = checkBytes;
-    this.blockSize = value.size + checkBytes;
+    this.blockSize = value.sizeBytes + checkBytes;
     this.codec = resolveCodec(options.codec ?? defaultCodec);
     this.seed = deriveSeed(options.key, this.blockSize);
     this.length = this.codec.encode(new Uint8Array(this.blockSize).fill(0xff)).length;
@@ -91,7 +91,7 @@ export class FlipID<T> {
     const block = new Uint8Array(this.blockSize);
     block.set(body);
     if (this.checkBytes > 0) {
-      block.set(this.deriveCheck(body), this.value.size);
+      block.set(this.deriveCheck(body), this.value.sizeBytes);
     }
     const encoded = this.codec.encode(scramble(block, this.seed));
     return encoded.padStart(this.length, this.codec.alphabet[0]);
@@ -115,11 +115,11 @@ export class FlipID<T> {
       return null;
     }
     const block = unscramble(raw, this.seed);
-    const body = block.slice(0, this.value.size);
+    const body = block.slice(0, this.value.sizeBytes);
     if (this.checkBytes > 0) {
       const expected = this.deriveCheck(body);
       for (let i = 0; i < this.checkBytes; i++) {
-        if (block[this.value.size + i] !== expected[i]) {
+        if (block[this.value.sizeBytes + i] !== expected[i]) {
           return null;
         }
       }
@@ -142,24 +142,24 @@ export class FlipID<T> {
   }
 
   /** Whole numbers stored in `bytes` bytes, up to 6. Set `signed` to allow negatives. */
-  static number(options: WidthOptions & { size: number }): FlipID<number> {
-    const size = width("size", options.size, MAX_NUMBER_BYTES);
-    return new FlipID(numberValue({ size, signed: options.signed ?? false }), options);
+  static number(options: WidthOptions & { sizeBytes: number }): FlipID<number> {
+    const sizeBytes = width("sizeBytes", options.sizeBytes, MAX_NUMBER_BYTES);
+    return new FlipID(numberValue({ sizeBytes, signed: options.signed ?? false }), options);
   }
 
   /** Whole numbers of any width, as `bigint`. Set `signed` to allow negatives. */
-  static bigint(options: WidthOptions & { size: number }): FlipID<bigint> {
-    const size = width("size", options.size, MAX_BYTES);
-    return new FlipID(bigintValue({ size, signed: options.signed ?? false }), options);
+  static bigint(options: WidthOptions & { sizeBytes: number }): FlipID<bigint> {
+    const sizeBytes = width("sizeBytes", options.sizeBytes, MAX_BYTES);
+    return new FlipID(bigintValue({ sizeBytes, signed: options.signed ?? false }), options);
   }
 
   /** Byte strings of exactly `size` bytes, such as a 16-byte UUID. */
-  static bytes(options: FlipIDOptions & { size: number }): FlipID<Uint8Array> {
-    return new FlipID(bytesValue(width("size", options.size, MAX_BYTES)), options);
+  static bytes(options: FlipIDOptions & { sizeBytes: number }): FlipID<Uint8Array> {
+    return new FlipID(bytesValue(width("sizeBytes", options.sizeBytes, MAX_BYTES)), options);
   }
 
   /** UTF-8 text of up to `size` bytes. */
-  static text(options: FlipIDOptions & { size: number }): FlipID<string> {
-    return new FlipID(textValue(width("size", options.size, MAX_BYTES)), options);
+  static text(options: FlipIDOptions & { sizeBytes: number }): FlipID<string> {
+    return new FlipID(textValue(width("sizeBytes", options.sizeBytes, MAX_BYTES)), options);
   }
 }
